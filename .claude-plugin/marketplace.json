@@ -1,0 +1,15 @@
+{
+  "name": "waqas-harness",
+  "description": "Waqas Hameed's portable Claude Code harness: advisor agents, profile-driven PR/ticket skills, enforcement hooks, and a self-adapting project bootstrap.",
+  "owner": { "name": "Waqas Hameed", "email": "muhammad.waqas1412@gmail.com" },
+  "plugins": [
+    {
+      "name": "harness",
+      "source": "./plugins/harness",
+      "description": "Read-only advisor agents (architect, designer, reviewer, perf, principles, docs), profile-driven /pr and /ticket skills, enforcement hooks, and /harness-init.",
+      "version": "0.1.0",
+      "category": "productivity",
+      "tags": ["claude-code", "agents", "subagents", "skills", "slash-commands", "hooks", "code-review", "scaffolding", "developer-tools", "productivity"]
+    }
+  ]
+}

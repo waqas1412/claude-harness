@@ -1,0 +1,10 @@
+# Local install scratch
+*.bak.*
+.DS_Store
+
+# Never commit machine/project secrets or personal state
+**/settings.local.json
+**/.env
+**/.env.*
+*.pem
+*.key

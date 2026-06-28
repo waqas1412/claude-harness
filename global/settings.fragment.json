@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "Workflow"
+    ]
+  },
+  "skipWorkflowUsageWarning": true,
+  "_personalPrefs": {
+    "_comment": "Keys under _personalPrefs are applied at top level by install.sh ONLY when run without --no-prefs. They are personal-global preferences, not portable defaults.",
+    "model": "opus[1m]",
+    "effortLevel": "xhigh",
+    "theme": "dark",
+    "tui": "fullscreen"
+  }
+}

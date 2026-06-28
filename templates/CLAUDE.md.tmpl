@@ -1,0 +1,35 @@
+# {{PROJECT_NAME}} Index
+
+> Directional triggers for navigation. Read this first; do not blind-recurse the repo. Deep,
+> path-scoped detail lives in `.claude/rules/*.md` and auto-loads when you touch the matching paths.
+
+## 1. System Topology
+{{!-- One bullet per top-level area / sub-project. For a single repo, describe its layers.
+For a monorepo, one bullet per package with its stack. --}}
+- **{{AREA_A}} `{{PATH_A}}/`:** {{STACK_A}} ({{ONE_LINE_PURPOSE_A}}).
+- **{{AREA_B}} `{{PATH_B}}/`:** {{STACK_B}} ({{ONE_LINE_PURPOSE_B}}).
+
+## 2. Structural Routing Triggers
+{{!-- Map intents to the exact files/dirs that own them, so navigation is a lookup, not a search. --}}
+- {{INTENT_1}}: `{{PATH_1}}`.
+- {{INTENT_2}}: `{{PATH_2}}`.
+- Per-area agent rules: read `{{AREA_AGENTS_FILE}}` before editing that area.
+
+## 3. Search & Grep Optimization
+- **File patterns:** {{KEY_GLOBS}} (e.g. components `*.tsx`; service entrypoints `cmd/*/main.go`).
+- **Legacy / avoid:** {{LEGACY_PATHS}} (pre-existing code not for new work), if any.
+- **Deny rules (ignore to save tokens):** {{DENY_DIRS}} (e.g. `node_modules`, `dist`, `build`,
+  `.git`, `target`, `.venv`, `__pycache__`, vendor dirs, generated output).
+- **Non-code zones (docs, not source):** {{DOC_ZONES}} (read only when the task references them).
+
+## 4. Deep Index Pointers
+- Path-scoped deep indexes live in `.claude/rules/` and auto-load via `targets` globs when you touch
+  an area. Open the match before editing.
+- Editing `{{PATH_A}}/**`: load `.claude/rules/{{AREA_A_SLUG}}.md` ({{AREA_A_DEEP_HINT}}).
+- Editing `{{PATH_B}}/**`: load `.claude/rules/{{AREA_B_SLUG}}.md` ({{AREA_B_DEEP_HINT}}).
+
+## 5. Deeper navigation (on-demand)
+- Read `.claude/meta/navigation.md` for the doc map, the agent-instruction hierarchy, and the
+  agent/skill guide.
+- Project profile (repo slug, tracker prefix, verify commands, stack flags) for the `/pr` and
+  `/ticket` skills: `.claude/harness/profile.md`.

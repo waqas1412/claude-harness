@@ -1,0 +1,34 @@
+# Navigation reference (on-demand)
+
+> Loaded only when needed. The always-on router is `CLAUDE.md` (Sections 1 to 5). This file holds the
+> heavier reference layer: doc map, instruction hierarchy, and the agent/skill guide.
+
+## Documentation Map
+- Per-area doc catalogs live in each `.claude/rules/<area>.md` under "Documentation Map" (auto-loads
+  when you touch that area).
+- Authoritative rules: {{AUTHORITATIVE_DOCS}} (e.g. `AGENTS.md`, per-area `CLAUDE.md`).
+- Knowledge bases / specs: {{KB_ENTRY_POINTS}} (start here; do not bulk-read raw dumps).
+- Doc-search deny: {{DOC_DENY_ZONES}} (generated reports, snapshots, vendored docs).
+
+## Agent Instruction Hierarchy
+*The guide files that govern Claude, broad to narrow. All apply cumulatively; narrower scope wins on conflict.*
+- **Global (every project):** `~/.claude/CLAUDE.md` (portable working agreements) plus the memory index.
+- **Workspace root:** `CLAUDE.md` (router, auto-loaded) plus `.claude/rules/<area>.md` (path-scoped deep indexes).
+- **Per-area hubs:** {{AREA_HUBS}} (e.g. `<area>/AGENTS.md` is primary for that area).
+- **Sub-scopes:** {{SUB_SCOPES}} (apply only when editing that subtree).
+
+## Agents, Workflows & Skills (when to use which)
+*Custom agents are read-only advisors, each usable at PLAN (design) and VERIFY (audit) gates.*
+- **Where code should live / layer boundaries / blast radius:** `system-architect`.
+- **Detailed component design (signatures, request/response, edge cases):** `system-designer`.
+- **Risk/test plan (plan) plus adversarial diff review (verify):** `developer-reviewer`.
+- **Reuse, duplication, abstraction right-sizing (DRY/WET/AHA/KISS/YAGNI):** `principles-engineer`.
+- **Structural design principles (SOLID/GRASP/CUPID, coupling/cohesion):** `design-principles-advisor`.
+- **Time/space complexity plus optimization:** `performance-optimizer`.
+- **Idiomatic implementation craft in the repo's language(s):** `senior-software-engineer`.
+- **Version-correct library research plus breaking changes:** `docs-researcher`.
+- **Draft a PR description from the diff:** `pr-author` (follows the `/pr` skill).
+- **Draft a tracker ticket from a description:** `jira-ticket-author` (follows the `/ticket` skill).
+- **Broad read-only search:** `Explore`. **Implementation planning:** `Plan`. **Catch-all:** `general-purpose`.
+- **Workflows:** author inline for fan-out (review/migrate/audit). Standing pref: multi-agent orchestration at every step.
+- **Key skills:** `/harness-init`, `/pr`, `/ticket`, plus any installed (`/code-review`, `/verify`, `/deep-research`).
