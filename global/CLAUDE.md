@@ -40,6 +40,17 @@ per-project profile that `/harness-init` generates at `.claude/harness/profile.m
   `git push --force-with-lease` (same branch ref is safe; only a rename closes the PR). Never add a
   second commit.
 
+## Memory
+
+- Keep durable, reusable facts in the memory store at `~/.claude/memory/`, one fact per file with
+  frontmatter (`name`, `description`, `metadata.type` = user | feedback | project | reference).
+- `~/.claude/memory/MEMORY.md` is the index: one line per fact (`- [Title](file.md) hook`). Add a
+  pointer when you create a fact; this index is the part loaded each session.
+- Write only what is durable and reusable: corrections, decisions, hard-won gotchas, stable user
+  preferences. Never store transient task state or anything the repo or git history already records.
+- Before saving, check for an existing file that covers it and update that instead of duplicating.
+  Delete a fact that turns out to be wrong. The em dash is allowed in `MEMORY.md` as its delimiter.
+
 ## How this repo is mapped
 
 - If this repo has a root `CLAUDE.md` index and `.claude/rules/*.md` deep indexes, read the index

@@ -1,0 +1,23 @@
+name: ci
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y jq shellcheck
+      - name: Structural validation
+        run: ./scripts/validate.sh
+      - name: Hook behavior tests
+        run: ./tests/run-hook-tests.sh
+      - name: Sandbox install + check
+        run: |
+          export CLAUDE_HOME="$(mktemp -d)"
+          ./install.sh
+          ./install.sh --check

@@ -1,7 +1,7 @@
 ---
 name: harness-init
 description: Scan the current repository and generate a tailored navigation harness (root CLAUDE.md index, path-scoped .claude/rules/*.md deep indexes, .claude/meta/navigation.md, and a .claude/harness/profile.md consumed by /pr and /ticket). Runs autonomously: infers stack, areas, verify commands, and conventions, then writes the files. Use to bootstrap or refresh a repo's harness, or when asked to "harness this project", set up CLAUDE.md, or index a codebase.
-argument-hint: "[--refresh] [optional: area/path to focus]"
+argument-hint: "[--refresh] [--emit codex] [optional: area/path to focus]"
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit
 ---
 
@@ -19,8 +19,11 @@ parallel, then synthesize. The main loop owns the file writes.
 
 1. `CLAUDE.md` (repo root) plus the root router index.
 2. `.claude/rules/<area>.md` one path-scoped deep index per area.
-3. `.claude/meta/navigation.md` the on-demand reference layer.
+3. `.claude/meta/navigation.md` the on-demand reference layer (includes an orchestration map).
 4. `.claude/harness/profile.md` the project profile (repo slug, tracker, verify commands, stack flags).
+5. `.claude/memory/` a project memory scaffold (one starter fact plus a `MEMORY.md` index).
+
+Optional with `--emit codex`: a root `AGENTS.md` mirroring the same model for Codex and Cursor.
 
 Wrap generated content between `<!-- harness:start -->` and `<!-- harness:end -->` markers so a later
 `--refresh` replaces only the managed block and leaves any hand-written prose intact. If a target
@@ -156,16 +159,40 @@ globs; the rest of the file is identical.
 ## Phase 5: Write navigation.md
 
 Write `.claude/meta/navigation.md` (on-demand reference): a Documentation Map, an Agent Instruction
-Hierarchy (global -> workspace root -> per-area hubs -> sub-scopes, cumulative, narrowest wins), and
-the Agents/Workflows/Skills guide (the read-only advisor roster and key skills). Keep it tailored to
-the areas and docs you found.
+Hierarchy (global -> workspace root -> per-area hubs -> sub-scopes, cumulative, narrowest wins), the
+Agents/Workflows/Skills guide (the read-only advisor roster and key skills), and an ORCHESTRATION MAP
+(which advisors fire at the PLAN gate vs the VERIFY gate and which run in parallel, mirroring the
+`/orchestrate` skill). Keep it tailored to the areas and docs you found.
 
-## Phase 6: Report
+## Phase 6: Project memory scaffold
+
+Write `.claude/memory/` with a `MEMORY.md` index and exactly one starter fact capturing project
+context the scan already learned (stack, areas, the rationale behind the verify commands) as
+`project-context.md` with frontmatter (`name`, `description`, `metadata.type: project`). Wrap the
+managed parts in `<!-- harness:start -->` and `<!-- harness:end -->` so `--refresh` is idempotent and
+a user's later facts survive. Use the same one-fact-per-file convention as the global memory store; do
+not scatter state files into the repo root. Record a commit-vs-gitignore decision in ASSUMPTIONS.
+
+## Phase 7: Self-verify
+
+Prove the no-invented-paths contract mechanically before reporting:
+- Extract every backtick-quoted path from the generated `CLAUDE.md` and each `.claude/rules/*.md`.
+- For each, run `test -e` (or a `git ls-files` match); remove or correct any path that does not exist.
+- For each rules file, confirm its `targets:` glob matches at least one real file; widen or drop it if not.
+- Carry verified-vs-dropped counts into the Phase 8 report.
+
+## Phase 8: Report
 
 Summarize: the areas detected, the verify commands resolved per area, the files written (with paths),
-the tracker/prefix inference, and every low-confidence ASSUMPTION the user should confirm. Suggest, but
-do not auto-apply, project-scoped permission allow-rules for the verify commands (those belong in the
-project's `.claude/settings.json`, not user-global).
+the tracker/prefix inference, the self-verify verified-vs-dropped path counts, and every low-confidence
+ASSUMPTION the user should confirm. Suggest, but do not auto-apply, project-scoped permission allow-rules
+for the verify commands (those belong in the project's `.claude/settings.json`, not user-global).
+
+## Optional: --emit codex (AGENTS.md)
+
+When invoked with `--emit codex` (default stays Claude-only), also write a root `AGENTS.md` from the
+SAME detected model (topology, routing, verify commands) so Codex and Cursor get the same guidance.
+Emit `AGENTS.md` only: no per-harness packaging, MCP inventories, or transpile pipelines.
 
 ## Autonomy contract
 
