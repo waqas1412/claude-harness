@@ -10,4 +10,13 @@ case "$cmd" in
     fi
     ;;
 esac
+case "$cmd" in
+  *"gh api"*requested_reviewers*)
+    # Block only writes (a non-GET method or field flags); allow read-only GET.
+    if printf '%s' "$cmd" | grep -qiE -- '(--method[ =]|-X[ =]?)(post|put|patch|delete)|(^|[[:space:]])(-f|-F|--field|--raw-field|--input)([[:space:]]|=)'; then
+      echo "Blocked: no requested_reviewers mutation via gh api. Request reviews yourself." >&2
+      exit 2
+    fi
+    ;;
+esac
 exit 0

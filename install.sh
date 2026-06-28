@@ -150,8 +150,11 @@ install_capabilities() {
   head "Skills"
   for d in "$SRC"/plugins/harness/skills/*/; do
     [ -d "$d" ] || continue
-    local name; name="$(basename "$d")"
-    for f in "$d"*; do copy_file "$f" "$CLAUDE_HOME/skills/$name/$(basename "$f")"; done
+    local name rel; name="$(basename "$d")"
+    while IFS= read -r f; do
+      rel="${f#"$d"}"
+      copy_file "$f" "$CLAUDE_HOME/skills/$name/$rel"
+    done < <(find "$d" -type f)
     note "skill: $name"
   done
 
@@ -163,10 +166,12 @@ install_capabilities() {
   done
   note "3 enforcement hooks (coauthor, pr-reviewer, md-emdash)"
 
-  head "Memory seed (reference only)"
-  mkdir -p "$CLAUDE_HOME/memory-seed"
-  for f in "$SRC"/global/memory/*; do [ -e "$f" ] && copy_file "$f" "$CLAUDE_HOME/memory-seed/$(basename "$f")"; done
-  note "copied to $CLAUDE_HOME/memory-seed (project memory is path-scoped; not auto-applied)"
+  head "Memory store"
+  local mem="$CLAUDE_HOME/memory"; mkdir -p "$mem"
+  [ -d "$CLAUDE_HOME/memory-seed" ] && { rm -rf "$CLAUDE_HOME/memory-seed"; note "removed legacy memory-seed/ (migrated to memory/)"; } || true
+  [ -f "$mem/MEMORY.md" ] || copy_file "$SRC/global/memory/MEMORY.md" "$mem/MEMORY.md"
+  [ -f "$mem/user_background.md" ] || copy_file "$SRC/global/memory/user_background.md" "$mem/user_background.md"
+  note "memory store at $mem (existing facts preserved; convention is in CLAUDE.md)"
 }
 
 # ---- check mode -------------------------------------------------------------
@@ -192,6 +197,44 @@ do_check() {
   na="$(ls -1 "$CLAUDE_HOME"/agents/*.md 2>/dev/null | wc -l | tr -d ' ')"
   ns="$(ls -1d "$CLAUDE_HOME"/skills/*/ 2>/dev/null | wc -l | tr -d ' ')"
   note "agents present: $na ; skills present: $ns"
+
+  # behavioral: each installed hook must DENY a known-bad payload and ALLOW a known-good one
+  local h="$CLAUDE_HOME/hooks" em; em="$(printf '\342\200\224')"
+  _ec() { printf '%s' "$2" | sh "$h/$1" >/dev/null 2>&1; echo $?; }
+  if [ -f "$h/block-coauthor.sh" ]; then
+    [ "$(_ec block-coauthor.sh '{"tool_input":{"command":"git commit -m \"x\n\nCo-Authored-By: A <a@b.c>\""}}')" = 2 ] \
+      && [ "$(_ec block-coauthor.sh '{"tool_input":{"command":"git commit -m ok"}}')" = 0 ] \
+      && note "behavior: block-coauthor denies+allows" || { note "BEHAVIOR FAIL: block-coauthor"; ok=0; }
+  fi
+  if [ -f "$h/block-pr-reviewer.sh" ]; then
+    [ "$(_ec block-pr-reviewer.sh '{"tool_input":{"command":"gh pr create --reviewer x"}}')" = 2 ] \
+      && [ "$(_ec block-pr-reviewer.sh '{"tool_input":{"command":"gh pr create --base main"}}')" = 0 ] \
+      && note "behavior: block-pr-reviewer denies+allows" || { note "BEHAVIOR FAIL: block-pr-reviewer"; ok=0; }
+  fi
+  if [ -f "$h/block-md-emdash.sh" ]; then
+    [ "$(_ec block-md-emdash.sh "$(printf '{"tool_input":{"file_path":"/x/a.md","content":"a %s b"}}' "$em")")" = 2 ] \
+      && [ "$(_ec block-md-emdash.sh '{"tool_input":{"file_path":"/x/a.md","content":"a, b"}}')" = 0 ] \
+      && note "behavior: block-md-emdash denies+allows" || { note "BEHAVIOR FAIL: block-md-emdash"; ok=0; }
+  fi
+
+  # memory store + bidirectional pointer integrity: every fact file is listed in MEMORY.md, and
+  # every MEMORY.md link resolves to a real file. Any inconsistency fails --check.
+  if [ -d "$CLAUDE_HOME/memory" ]; then
+    note "memory store present"
+    local idx="$CLAUDE_HOME/memory/MEMORY.md" orphan=0 mf ptr
+    if [ -f "$idx" ]; then
+      for mf in "$CLAUDE_HOME"/memory/*.md; do
+        [ -e "$mf" ] || continue
+        [ "$(basename "$mf")" = "MEMORY.md" ] && continue
+        grep -qF "$(basename "$mf")" "$idx" || { note "memory: $(basename "$mf") has no MEMORY.md pointer"; orphan=1; }
+      done
+      for ptr in $(grep -oE '\]\([^)]+\.md\)' "$idx" | sed -E 's/^\]\(//; s/\)$//'); do
+        [ -f "$CLAUDE_HOME/memory/$ptr" ] || { note "memory: MEMORY.md points to missing $ptr"; orphan=1; }
+      done
+      [ "$orphan" = 0 ] && note "memory: pointers consistent" || ok=0
+    fi
+  fi
+
   [ "$ok" = 1 ] && { echo; echo "OK: install looks healthy."; } || { echo; echo "PROBLEMS found (see above)."; exit 1; }
 }
 
