@@ -16,9 +16,15 @@ skills, enforcement hooks) and a `/harness-init` command that tailors any reposi
   work in any codebase.
 - **Skills** (`plugins/harness/skills/`):
   - `/harness-init` scans the current repo and generates its navigation harness (see below).
+  - `/orchestrate` runs a change through the multi-agent PLAN and VERIFY loop in one command.
   - `/pr` and `/ticket` write to house templates, reading project tokens from a per-repo profile.
 - **Enforcement hooks** (`plugins/harness/hooks/`): PreToolUse guards that mechanically block a
-  Co-Authored-By trailer, a `--reviewer` flag on `gh pr`, and an em dash in authored markdown.
+  Co-Authored-By trailer, a reviewer flag on `gh pr` (and `requested_reviewers` via `gh api`), and an
+  em dash in authored markdown. See `SECURITY.md` for the threat model and known residual bypasses.
+- **Memory:** the installed `CLAUDE.md` carries a memory convention (one fact per file plus a
+  `MEMORY.md` index), and the installer seeds a `~/.claude/memory/` store.
+- **Quality gates:** `scripts/validate.sh` and `tests/run-hook-tests.sh` run in CI on every push and
+  PR, and `install.sh --check` re-verifies hook behavior and memory integrity on a live install.
 
 ## The self-adapting part
 
@@ -32,6 +38,9 @@ Run `/harness-init` in any repository. It scans the repo and writes, following a
   guide).
 - `.claude/harness/profile.md` the project profile (repo slug, tracker prefix, default branch, and the
   resolved lint/test/build commands) that `/pr` and `/ticket` read.
+- `.claude/memory/` a project memory scaffold (one starter fact plus an index).
+
+Run it with `--emit codex` to also write a root `AGENTS.md` from the same model, for Codex and Cursor.
 
 This is what "harness itself based on where it is installed" means: the portable agents and skills stay
 generic, and `/harness-init` injects the project knowledge.
@@ -78,20 +87,37 @@ instructions or permissions, so the working-agreements `CLAUDE.md` and the permi
 not applied this way. To add them, copy `global/CLAUDE.md` into your `~/.claude/CLAUDE.md` and add the
 `permissions.allow` entries from `global/settings.fragment.json` yourself, or just use Path A.
 
+### What each path delivers
+
+| Capability | Path A (`install.sh`) | Path B (plugin) |
+| --- | --- | --- |
+| Advisor agents | yes | yes |
+| Skills (harness-init, orchestrate, pr, ticket) | yes | yes |
+| Enforcement hooks | yes (wired into settings.json) | yes (plugin hooks) |
+| Working-agreements CLAUDE.md | yes | no (copy it yourself) |
+| Permission allow-rules and prefs | yes (merged) | no (add yourself) |
+| Memory store seed | yes | no |
+| Self-updating | git pull, re-run install.sh | `/plugin update` |
+
 ## Layout
 
 ```
 claude-harness/
   install.sh / uninstall.sh        idempotent installer + remover
+  scripts/validate.sh              structural validator (frontmatter, tools, version, lint)
+  scripts/bump-version.sh          set the version (VERSION is the source of truth)
+  tests/run-hook-tests.sh          behavioral hook tests (deny vs allow)
+  .github/workflows/ci.yml         runs validate + hook tests + sandbox install on push/PR
   .claude-plugin/marketplace.json  native marketplace manifest (Path B)
+  CONTRIBUTING.md / SECURITY.md    contribution gate + hook threat model
   global/
-    CLAUDE.md                      portable working agreements (-> ~/.claude/CLAUDE.md)
+    CLAUDE.md                      portable working agreements + memory convention
     settings.fragment.json         prefs + permission allow-rules merged into settings.json
-    memory/                        memory seed (reference; project memory is path-scoped)
+    memory/                        seed for the installed ~/.claude/memory store
   plugins/harness/
     .claude-plugin/plugin.json     plugin manifest
     agents/                        advisor agents
-    skills/{harness-init,pr,ticket}/SKILL.md
+    skills/{harness-init,orchestrate,pr,ticket}/   SKILL.md (+ pr/ticket references/)
     hooks/{hooks.json, block-*.sh} enforcement hooks
   templates/                       human-readable copies of the index/rule/navigation patterns
 ```

@@ -31,4 +31,10 @@
 - **Draft a tracker ticket from a description:** `jira-ticket-author` (follows the `/ticket` skill).
 - **Broad read-only search:** `Explore`. **Implementation planning:** `Plan`. **Catch-all:** `general-purpose`.
 - **Workflows:** author inline for fan-out (review/migrate/audit). Standing pref: multi-agent orchestration at every step.
-- **Key skills:** `/harness-init`, `/pr`, `/ticket`, plus any installed (`/code-review`, `/verify`, `/deep-research`).
+- **Key skills:** `/harness-init`, `/orchestrate`, `/pr`, `/ticket`, plus any installed (`/code-review`, `/verify`, `/deep-research`).
+
+## Orchestration map
+*Which advisors fire at each gate (see the `/orchestrate` skill for the full recipe). All advise only; the main loop owns edits, git, and the authoritative lint/build/test.*
+- **PLAN gate (before code), in parallel:** `system-architect` (placement), `system-designer` (signatures/edge cases), `principles-engineer` (reuse/right-sizing), `design-principles-advisor` (structure), `docs-researcher` (version-correct library usage). Synthesize into one plan.
+- **VERIFY gate (after the diff, before commit), in parallel:** `developer-reviewer` (correctness/tests, adversarial), `performance-optimizer` (hot-path only), `senior-software-engineer` (idiom self-check), plus a re-run of the relevant PLAN advisor. Gate the commit on an explicit go/no-go.
+- **Deferral edges:** each advisor's own `Boundaries` section names which sibling to use when a question is out of its lane.
