@@ -11,13 +11,16 @@ per-project profile that `/harness-init` generates at `.claude/harness/profile.m
 - Multi-agent orchestration: solve substantial tasks via multiple agents and multiple workflows at
   every step (research, architecture, review, verify, test, breaking-changes). The main loop keeps
   edits, git, and the authoritative lint/build/test. Solo only on trivial or conversational turns.
+  Research diverse authentic sources (official standards, design systems, mature products), then
+  adversarially verify the primary source before pushing.
 - Avoid em dash: do not lean on the em dash (the long dash character) in prose. Default to commas,
   periods, parentheses, or colons, or restructure. Applies to chat and authored docs (PRs, tickets,
   commits). En dash in numeric ranges is fine. This is also enforced mechanically by a hook.
 - Code comments: avoid inline comments; write one only when necessary (a non-obvious why or a real
   gotcha) and keep it a one-liner. Let naming and structure carry intent; match the file's density.
-- Bash/web no approval: run Bash, WebFetch, WebSearch, and Workflow without asking (allow-rules are
-  installed in settings.json). Still flag destructive or irreversible operations before running them.
+- Bash/web no approval: run Bash, WebFetch, WebSearch, Workflow, and configured MCP tools without
+  asking (allow-rules are installed in settings.json). Still flag destructive or irreversible
+  operations before running them.
 - Commit authorship: never add a `Co-Authored-By` trailer. Sole author. Enforced by a hook.
 - PR reviewers: `gh pr create` with title, body, and base only. No `--reviewer`, no
   requested_reviewers mutations. Request reviews yourself. Enforced by a hook.
@@ -31,7 +34,9 @@ per-project profile that `/harness-init` generates at `.claude/harness/profile.m
   grep gate, lint/build/scoped-test gate. Lean and skippable.
 - Verify repo conventions before git ops: before every commit, push, or PR, re-check the diff
   against the repo's agent instructions (e.g. AGENTS.md), run lint plus build plus change-related
-  tests fresh, and state compliance explicitly.
+  tests fresh, and state compliance explicitly. Confirm the current branch
+  (`git branch --show-current`) before any commit or amend; never amend without verifying HEAD is the
+  intended commit.
 - Characterization tests first: when refactoring an untested target, pin existing behavior green
   first, then refactor, then red to green the intended change.
 - Branch rename closes PRs: never rename a branch that heads an open PR (GitHub closes it). Relabel
