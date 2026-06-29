@@ -14,6 +14,10 @@
 #   ./install.sh --no-prefs      skip personal prefs (model/effortLevel/theme/tui); still install the rest
 #   ./install.sh --check         validate an existing install; write nothing
 #   ./install.sh --with-marketplace   also register this repo as a local plugin marketplace (best effort)
+#   ./install.sh --link          symlink agents/skills/hooks to this repo (two-way: edits flow both ways)
+#   ./install.sh --unlink        replace those symlinks with plain copies (freeze the live setup)
+#   ./install.sh --no-memory     skip seeding ~/.claude/memory (use if you manage memory elsewhere)
+#   ./install.sh --no-global     skip the CLAUDE.md + settings merge (sync only agents/skills/hooks)
 #   ./install.sh --uninstall     remove harness files (delegates to uninstall.sh)
 #   ./install.sh -h | --help
 #
@@ -28,14 +32,22 @@ TS="$(date +%Y%m%d%H%M%S)"
 WITH_PREFS=1
 MODE="install"
 WITH_MARKETPLACE=0
+LINK=0
+UNLINK=0
+WITH_MEMORY=1
+WITH_GLOBAL=1
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --no-prefs) WITH_PREFS=0 ;;
     --check) MODE="check" ;;
     --with-marketplace) WITH_MARKETPLACE=1 ;;
+    --link) LINK=1 ;;
+    --unlink) UNLINK=1 ;;
+    --no-memory) WITH_MEMORY=0 ;;
+    --no-global) WITH_GLOBAL=0 ;;
     --uninstall) MODE="uninstall" ;;
-    -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
+    -h|--help) awk 'NR>1 && /^#/{sub(/^# ?/,"");print} NR>2 && !/^#/{exit}' "$0"; exit 0 ;;
     *) echo "Unknown flag: $1" >&2; exit 2 ;;
   esac
   shift
@@ -56,6 +68,23 @@ copy_file() {
     mv "$dst" "$dst.bak.$TS"; note "backed up $(basename "$dst") -> $(basename "$dst").bak.$TS"
   fi
   cp "$src" "$dst"
+}
+
+# ---- symlink helpers (two-way sync): point CLAUDE_HOME/<name> at the repo dir ----
+link_dir() {
+  local src="$1" dst="$2"
+  if [ -L "$dst" ]; then
+    if [ "$(readlink "$dst")" = "$src" ]; then note "linked (already) $(basename "$dst")"; return; fi
+    rm "$dst"
+  elif [ -e "$dst" ]; then
+    mv "$dst" "$dst.bak.$TS"; note "backed up $(basename "$dst")/ -> $(basename "$dst").bak.$TS"
+  fi
+  ln -sfn "$src" "$dst"; note "linked $(basename "$dst") -> repo"
+}
+unlink_dir() {
+  local src="$1" dst="$2"
+  if [ -L "$dst" ]; then rm "$dst"; fi
+  mkdir -p "$dst"; cp -R "$src"/. "$dst"/; note "unlinked $(basename "$dst") (now a real copy)"
 }
 
 # ---- CLAUDE.md marker-block merge -------------------------------------------
@@ -140,38 +169,54 @@ merge_settings() {
 
 # ---- copy agents / skills / hooks ------------------------------------------
 install_capabilities() {
-  head "Agents"
-  for f in "$SRC"/plugins/harness/agents/*.md; do
-    [ -e "$f" ] || continue
-    copy_file "$f" "$CLAUDE_HOME/agents/$(basename "$f")"
-  done
-  note "$(ls -1 "$SRC"/plugins/harness/agents/*.md 2>/dev/null | wc -l | tr -d ' ') agents"
+  if [ "$LINK" = 1 ]; then
+    head "Agents / skills / hooks (symlinked to repo, two-way)"
+    link_dir "$SRC/plugins/harness/agents" "$CLAUDE_HOME/agents"
+    link_dir "$SRC/plugins/harness/skills" "$CLAUDE_HOME/skills"
+    link_dir "$SRC/plugins/harness/hooks"  "$CLAUDE_HOME/hooks"
+  elif [ "$UNLINK" = 1 ]; then
+    head "Agents / skills / hooks (converting symlinks to copies)"
+    unlink_dir "$SRC/plugins/harness/agents" "$CLAUDE_HOME/agents"
+    unlink_dir "$SRC/plugins/harness/skills" "$CLAUDE_HOME/skills"
+    unlink_dir "$SRC/plugins/harness/hooks"  "$CLAUDE_HOME/hooks"
+  else
+    head "Agents"
+    for f in "$SRC"/plugins/harness/agents/*.md; do
+      [ -e "$f" ] || continue
+      copy_file "$f" "$CLAUDE_HOME/agents/$(basename "$f")"
+    done
+    note "$(ls -1 "$SRC"/plugins/harness/agents/*.md 2>/dev/null | wc -l | tr -d ' ') agents"
 
-  head "Skills"
-  for d in "$SRC"/plugins/harness/skills/*/; do
-    [ -d "$d" ] || continue
-    local name rel; name="$(basename "$d")"
-    while IFS= read -r f; do
-      rel="${f#"$d"}"
-      copy_file "$f" "$CLAUDE_HOME/skills/$name/$rel"
-    done < <(find "$d" -type f)
-    note "skill: $name"
-  done
+    head "Skills"
+    for d in "$SRC"/plugins/harness/skills/*/; do
+      [ -d "$d" ] || continue
+      local name rel; name="$(basename "$d")"
+      while IFS= read -r f; do
+        rel="${f#"$d"}"
+        copy_file "$f" "$CLAUDE_HOME/skills/$name/$rel"
+      done < <(find "$d" -type f)
+      note "skill: $name"
+    done
 
-  head "Hooks"
-  for f in "$SRC"/plugins/harness/hooks/block-*.sh; do
-    [ -e "$f" ] || continue
-    copy_file "$f" "$CLAUDE_HOME/hooks/$(basename "$f")"
-    chmod +x "$CLAUDE_HOME/hooks/$(basename "$f")"
-  done
-  note "3 enforcement hooks (coauthor, pr-reviewer, md-emdash)"
+    head "Hooks"
+    for f in "$SRC"/plugins/harness/hooks/block-*.sh; do
+      [ -e "$f" ] || continue
+      copy_file "$f" "$CLAUDE_HOME/hooks/$(basename "$f")"
+      chmod +x "$CLAUDE_HOME/hooks/$(basename "$f")"
+    done
+    note "3 enforcement hooks (coauthor, pr-reviewer, md-emdash)"
+  fi
 
-  head "Memory store"
-  local mem="$CLAUDE_HOME/memory"; mkdir -p "$mem"
-  [ -d "$CLAUDE_HOME/memory-seed" ] && { rm -rf "$CLAUDE_HOME/memory-seed"; note "removed legacy memory-seed/ (migrated to memory/)"; } || true
-  [ -f "$mem/MEMORY.md" ] || copy_file "$SRC/global/memory/MEMORY.md" "$mem/MEMORY.md"
-  [ -f "$mem/user_background.md" ] || copy_file "$SRC/global/memory/user_background.md" "$mem/user_background.md"
-  note "memory store at $mem (existing facts preserved; convention is in CLAUDE.md)"
+  if [ "$WITH_MEMORY" = 1 ] && [ "$WITH_GLOBAL" = 1 ]; then
+    head "Memory store"
+    local mem="$CLAUDE_HOME/memory"; mkdir -p "$mem"
+    [ -d "$CLAUDE_HOME/memory-seed" ] && { rm -rf "$CLAUDE_HOME/memory-seed"; note "removed legacy memory-seed/ (migrated to memory/)"; } || true
+    [ -f "$mem/MEMORY.md" ] || copy_file "$SRC/global/memory/MEMORY.md" "$mem/MEMORY.md"
+    [ -f "$mem/user_background.md" ] || copy_file "$SRC/global/memory/user_background.md" "$mem/user_background.md"
+    note "memory store at $mem (existing facts preserved; convention is in CLAUDE.md)"
+  else
+    note "memory seeding skipped"
+  fi
 }
 
 # ---- check mode -------------------------------------------------------------
@@ -197,6 +242,9 @@ do_check() {
   na="$(ls -1 "$CLAUDE_HOME"/agents/*.md 2>/dev/null | wc -l | tr -d ' ')"
   ns="$(ls -1d "$CLAUDE_HOME"/skills/*/ 2>/dev/null | wc -l | tr -d ' ')"
   note "agents present: $na ; skills present: $ns"
+  for d in agents skills hooks; do
+    [ -L "$CLAUDE_HOME/$d" ] && note "$d: symlinked -> $(readlink "$CLAUDE_HOME/$d")" || true
+  done
 
   # behavioral: each installed hook must DENY a known-bad payload and ALLOW a known-good one
   local h="$CLAUDE_HOME/hooks" em; em="$(printf '\342\200\224')"
@@ -247,10 +295,15 @@ require_jq
 echo "Installing claude-harness into $CLAUDE_HOME"
 mkdir -p "$CLAUDE_HOME"
 install_capabilities
-head "Global instructions"
-merge_claude_md
-head "Settings"
-merge_settings
+if [ "$WITH_GLOBAL" = 1 ]; then
+  head "Global instructions"
+  merge_claude_md
+  head "Settings"
+  merge_settings
+else
+  head "Global instructions + settings"
+  note "skipped (--no-global): CLAUDE.md, settings, and memory left untouched"
+fi
 
 if [ "$WITH_MARKETPLACE" = 1 ]; then
   head "Marketplace (best effort)"

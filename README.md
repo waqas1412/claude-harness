@@ -99,6 +99,26 @@ not applied this way. To add them, copy `global/CLAUDE.md` into your `~/.claude/
 | Memory store seed | yes | no |
 | Self-updating | git pull, re-run install.sh | `/plugin update` |
 
+## Keeping it in sync (two-way)
+
+The portable layer (agents, skills, hooks) can be **symlinked** into `~/.claude` so edits flow both
+ways with no sync step:
+
+```sh
+./install.sh --link              # symlink agents/skills/hooks + merge CLAUDE.md/settings
+./install.sh --link --no-global  # symlink ONLY the component dirs; leave CLAUDE.md/settings/memory as-is
+./install.sh --unlink            # convert the symlinks back to plain copies (freeze)
+```
+
+Once linked, editing an agent, skill, or hook while you work IS editing the repo file: just
+`git commit` it, and a `git pull` updates your live setup instantly. `./install.sh --check` reports
+whether each dir is linked or copied and exercises the hooks.
+
+What stays **local and is never synced here**: your memory store, your personal `settings.json` (model,
+theme, plugins), and any project index a repo generates with `/harness-init`. Project-specific
+knowledge belongs in that project's own `CLAUDE.md` + `.claude/rules` (which the generic agents read);
+this repo holds only the portable, stack-neutral layer.
+
 ## Layout
 
 ```
