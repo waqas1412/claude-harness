@@ -10,10 +10,10 @@ skills, enforcement hooks) and a `/harness-init` command that tailors any reposi
   no Co-Authored-By, no PR reviewers, one commit per PR, characterization-tests-first, verify before
   git ops, and more). Installed as your global `~/.claude/CLAUDE.md`.
 - **Advisor agents** (`plugins/harness/agents/`): read-only PLAN/VERIFY advisors (system-architect,
-  system-designer, developer-reviewer, data-flow-timing-auditor, performance-optimizer,
-  principles-engineer, design-principles-advisor, docs-researcher, senior-software-engineer, plus
-  pr-author and jira-ticket-author). They defer to the repo's own generated index for stack and
-  conventions, so they work in any codebase.
+  system-designer, developer-reviewer, data-flow-timing-auditor, spec-fidelity-auditor,
+  design-parity-auditor, performance-optimizer, principles-engineer, design-principles-advisor,
+  docs-researcher, senior-software-engineer, plus pr-author and jira-ticket-author). They defer to
+  the repo's own generated index for stack and conventions, so they work in any codebase.
 - **Skills** (`plugins/harness/skills/`):
   - `/harness-init` scans the current repo and generates its navigation harness (see below).
   - `/orchestrate` runs a change through the multi-agent PLAN and VERIFY loop in one command.

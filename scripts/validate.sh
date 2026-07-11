@@ -48,7 +48,7 @@ for f in "$AGENTS"/*.md; do
   if [ -n "$ml" ]; then is_in "$ml" $MODELS && ok "$name: model $ml" || err "$name: invalid model '$ml'"; fi
   # Only treat hyphenated tokens ending in a known advisor role-suffix as agent references, so
   # ordinary prose ("use multi-step", "use red-green") cannot false-fail CI.
-  for ref in $(grep -oE 'use [a-z-]+-(architect|designer|reviewer|optimizer|engineer|advisor|researcher|author)' "$f" | sed 's/^use //' | sort -u); do
+  for ref in $(grep -oE 'use [a-z-]+-(architect|designer|reviewer|optimizer|engineer|advisor|researcher|author|auditor)' "$f" | sed 's/^use //' | sort -u); do
     is_in "$ref" $agent_slugs || err "$name: dangling agent reference '$ref'"
   done
 done

@@ -105,3 +105,5 @@ Be concrete and minimal-diff. Reuse existing seams over inventing new ones. Reco
 - Component spec (exact signatures/shapes/algorithms, edge-case matrix): use system-designer.
 - Idiomatic drafting/validation: use senior-software-engineer.
 - Official/version-correct API guidance: use docs-researcher.
+- Fidelity of an implemented UI to its pinned design file (tokens, spacing, states, breakpoints):
+  use design-parity-auditor; this lens judges the structure's merit, that one judges likeness.

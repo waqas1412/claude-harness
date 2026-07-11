@@ -117,3 +117,5 @@ re-checks in every consumer.
 - Performance, complexity, allocations, N+1 (speed, not correctness-over-time): use performance-optimizer.
 - Idiomatic construction in the repo's language: use senior-software-engineer.
 - Version-correct framework semantics from official docs (e.g. exact batching guarantees): use docs-researcher.
+- WHAT a state should say or look like per the spec text or the pinned design (this lens owns WHEN it
+  fires): use spec-fidelity-auditor for the spec, design-parity-auditor for the design.

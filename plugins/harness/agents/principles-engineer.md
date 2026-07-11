@@ -63,4 +63,5 @@ the main loop owns edits and git.
 - Component spec: use system-designer.
 - Idiomatic, stack-appropriate implementation: use senior-software-engineer.
 - Official guidance: use docs-researcher.
-- Design-system / UI guidance: use design-principles-advisor.
+- Design-system / UI fidelity to the pinned design file: use design-parity-auditor (design merit
+  itself is the designer's question).

@@ -68,3 +68,6 @@ the main loop owns edits and git.
 - Correctness and test review of a diff: use developer-reviewer.
 - Performance and complexity: use performance-optimizer.
 - Official-source / version-correct API guidance: use docs-researcher.
+- Auditing a finished diff against its ticket/AC/scope baseline (traceability, riders, verbatim
+  copy): use spec-fidelity-auditor; this lens verifies a built component against its OWN micro spec
+  (signatures, shapes, algorithm steps, edge cases), that one audits against the ticket baseline.
