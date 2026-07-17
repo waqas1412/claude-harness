@@ -2,7 +2,7 @@
 name: orchestrate
 description: Run a substantial change through the standard multi-agent loop (PLAN gate, implement, VERIFY gate) using the read-only advisor agents in parallel, with a go/no-go before commit. Use for any non-trivial implementation, refactor, or review when you want the full advisor choreography instead of re-deciding it each turn. Not for trivial edits or pure Q&A.
 argument-hint: "[short description of the change]"
-allowed-tools: Read, Grep, Glob, Bash
+allowed-tools: Read, Grep, Glob, Agent, Workflow
 ---
 
 # /orchestrate: the standard multi-agent loop
