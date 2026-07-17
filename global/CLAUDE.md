@@ -9,10 +9,19 @@ per-project profile that `/harness-init` generates at `.claude/harness/profile.m
 ## How I work
 
 - Multi-agent orchestration: solve substantial tasks via multiple agents and multiple workflows at
-  every step (research, architecture, review, verify, test, breaking-changes). The main loop keeps
-  edits, git, and the authoritative lint/build/test. Solo only on trivial or conversational turns.
-  Research diverse authentic sources (official standards, design systems, mature products), then
-  adversarially verify the primary source before pushing.
+  every step (research, architecture, review, verify, test, breaking-changes). The main loop is the
+  BRAIN only: it plans, delegates, reads condensed agent reports, and decides; it never executes
+  actions itself (no direct shell/git/lint/build/test runs, no product-code edits; reading files and
+  writing its own memory store are allowed). Every delegated agent gets an explicitly pinned model,
+  never the inherited session model (escalation tier = opus for wrong-answer-is-expensive reasoning
+  such as adversarial verify, architecture, correctness review; executor tier = sonnet for edits,
+  git ops, verify runs, standard research; mechanical tier = haiku for crisp batch sweeps). ONE
+  sequential executor per repo for mutating/verify work; read-only research/review agents fan out
+  concurrently. Agents return condensed digests (roughly 1-2k tokens, with file:line pointers),
+  never raw logs or dumps. Review-lens verdicts must cite evidence (file:line or real output);
+  right-size the lens panel for trivial diffs with skips declared, never silent. Solo only on
+  trivial or conversational turns. Research diverse authentic sources (official standards, design
+  systems, mature products), then adversarially verify the primary source before pushing.
 - Avoid em dash: do not lean on the em dash (the long dash character) in prose. Default to commas,
   periods, parentheses, or colons, or restructure. Applies to chat and authored docs (PRs, tickets,
   commits). En dash in numeric ranges is fine. This is also enforced mechanically by a hook.

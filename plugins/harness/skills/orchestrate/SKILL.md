@@ -8,9 +8,11 @@ allowed-tools: Read, Grep, Glob, Bash
 # /orchestrate: the standard multi-agent loop
 
 A recipe, not an engine. It names which read-only advisors fire at each gate and which run in
-parallel. The main loop owns all edits, git, and the authoritative lint/build/test; the advisors
-only advise. Dispatch agents with the native Task tool, concurrently within a gate. Scale the roster
-to the task: a one-file fix needs two advisors, a cross-cutting change needs the full panel.
+parallel. The main loop is the brain: it plans, delegates, and gates. A single sequential executor
+agent (model: sonnet, one per repo) applies edits and runs git and the authoritative lint/build/test,
+returning condensed reports; the advisors only advise. Dispatch agents with the native Task tool,
+concurrently within a gate. Scale the roster to the task: a one-file fix needs two advisors, a
+cross-cutting change needs the full panel.
 
 ## Gate 1: PLAN (before writing code)
 
@@ -31,13 +33,17 @@ Output of this gate: a single agreed plan (placement, signatures, test plan, ris
 disagree, resolve it in the plan before coding. For an untested target, write characterization tests
 that pin current behavior and get them green first.
 
-## Implement (main loop only)
+## Implement (via the executor agent)
 
-Apply the edits yourself. Keep each PR single-purpose and one commit. Do not dispatch agents to edit.
+The main loop specifies the exact changes (files, edits, rationale), then dispatches ONE sequential
+executor agent (model: sonnet) to apply them. The executor applies the edits and reports back the
+diff; the main loop reviews the reported diff before proceeding. Keep each PR single-purpose and one
+commit. Never run mutating agents in parallel in the same working dir; one executor at a time per repo.
 
 ## Gate 2: VERIFY (after the diff exists, before commit)
 
-Run the authoritative lint/build/change-related tests yourself first, then dispatch in parallel:
+Have the executor agent run the authoritative lint/build/change-related tests and report results
+first, then dispatch in parallel:
 - `developer-reviewer` correctness, invariants, boundary/nil/ordering, test coverage red to green,
   AGENTS.md compliance. Adversarial: it tries to break the diff.
 - `spec-fidelity-auditor` bidirectional trace against the ticket/spec/KB: every criterion delivered
@@ -50,13 +56,16 @@ Run the authoritative lint/build/change-related tests yourself first, then dispa
 - `senior-software-engineer` idiom and construction self-check in the repo's language.
 - Re-run the relevant Gate 1 advisor to confirm the implementation matched the agreed structure.
 
-Each VERIFY finding is triaged: fix it, or record why it is acceptable. Gate the commit on an
-explicit go/no-go: do not commit with an unresolved correctness finding.
+Each VERIFY finding is triaged: fix it, or record why it is acceptable. Lens verdicts must cite
+concrete evidence (file:line or real output); right-size the panel for trivial diffs, with skips
+declared explicitly, never silent. Gate the commit on an explicit go/no-go: do not commit with an
+unresolved correctness finding.
 
 ## Commit
 
-Only after VERIFY is go: re-check the diff against the repo's AGENTS.md, run lint/build/tests fresh,
-state compliance, then commit (single commit per PR) and open the PR with the `/pr` skill.
+Only after VERIFY is go: dispatch the executor agent to re-check the diff against the repo's
+AGENTS.md, run lint/build/tests fresh, state compliance, commit (single commit per PR), and open the
+PR with the `/pr` skill. The main loop reviews the executor's report before treating the PR as done.
 
 ## Scope discipline
 
