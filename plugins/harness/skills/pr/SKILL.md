@@ -17,7 +17,7 @@ drop the tracker-close line.
 `<type>: <TICKET-KEY> <imperative one-line summary>`
 - type is one of `COMMIT_TYPES` (default: feat | fix | refactor | chore | perf | docs | test).
 - Append `!` for a breaking change (e.g. `feat!: <TICKET-KEY> ...`). Optional module scope: `feat(area): ...`.
-- `<TICKET-KEY>` uses `TICKET_PREFIX` (e.g. `WEB-1234`); omit if the project has no tracker.
+- `<TICKET-KEY>` uses `TICKET_PREFIX` (e.g. `PROJ-1234`); omit if the project has no tracker.
 - Must stand alone in history; never "fix", "updates", "phase 1".
 
 ## Body and checklist

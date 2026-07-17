@@ -55,7 +55,7 @@ Run a fast, read-only scan. Prefer Bash one-liners and Glob over reading whole f
   `__pycache__`, `*.egg-info`, `vendor`, generated `sqlc`/codegen dirs, test-report/snapshot dirs).
 - **Tracker prefix:** infer from branch and commit history
   (`git log --oneline -50`, `git branch -a`): a recurring `[A-Z]{2,}-\d+` token is the prefix
-  (e.g. `WEB-`, `PROJ-`, `JIRA-`). If none is found, leave `TICKET_PREFIX` empty and note that
+  (e.g. `PROJ-`, `JIRA-`, `OPS-`). If none is found, leave `TICKET_PREFIX` empty and note that
   `/pr` and `/ticket` should fall back to GitHub issue refs.
 - **Routing triggers:** for each area, identify the dirs that own the common intents (entrypoints,
   HTTP handlers/routes, data layer, shared libs, UI components, config, tests). These become Section 2.
@@ -72,7 +72,7 @@ read. Keep it terse and machine-readable.
 - REPO: {{owner/repo}}
 - DEFAULT_BRANCH: {{main}}
 - TRACKER: {{Jira|GitHub Issues|Linear|none}}
-- TICKET_PREFIX: {{WEB-|empty}}
+- TICKET_PREFIX: {{PROJ-|empty}}
 - TRACKER_BROWSE_URL: {{https://org.atlassian.net/browse/ | empty}}
 - TRACKER_CLOSE_KEYWORD: {{Closes | Fixes #}}
 - PR_TOOL: gh

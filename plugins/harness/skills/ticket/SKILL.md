@@ -10,7 +10,7 @@ allowed-tools: Read, Grep, Glob, Bash
 First, load `.claude/harness/profile.md` for this project's tokens (`TICKET_PREFIX`, `TRACKER`,
 `TRACKER_BROWSE_URL`, `LINT_CMD`, `UNIT_TEST_CMD`, `E2E_TEST_CMD`, `BUILD_CMD`, `WEB_UI`). If no
 profile exists, infer from the repo (run `/harness-init`) and proceed. Ticket keys use `TICKET_PREFIX`
-(e.g. `WEB-1234`); if the project has no tracker, write the ticket as a backlog markdown file and link
+(e.g. `PROJ-1234`); if the project has no tracker, write the ticket as a backlog markdown file and link
 a GitHub issue instead.
 
 Every ticket is INVEST (Independent, Negotiable, Valuable, Estimable, Small, Testable), names a
