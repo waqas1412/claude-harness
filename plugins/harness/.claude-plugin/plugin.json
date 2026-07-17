@@ -1,7 +1,7 @@
 {
   "name": "harness",
   "displayName": "Claude Harness",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Portable read-only advisor agents, profile-driven PR/ticket skills, enforcement hooks, and a self-adapting /harness-init that tailors any repo to a documented index pattern.",
   "author": {
     "name": "Waqas Hameed",
