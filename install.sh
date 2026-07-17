@@ -211,8 +211,11 @@ install_capabilities() {
     head "Memory store"
     local mem="$CLAUDE_HOME/memory"; mkdir -p "$mem"
     [ -d "$CLAUDE_HOME/memory-seed" ] && { rm -rf "$CLAUDE_HOME/memory-seed"; note "removed legacy memory-seed/ (migrated to memory/)"; } || true
-    [ -f "$mem/MEMORY.md" ] || copy_file "$SRC/global/memory/MEMORY.md" "$mem/MEMORY.md"
-    [ -f "$mem/user_background.md" ] || copy_file "$SRC/global/memory/user_background.md" "$mem/user_background.md"
+    for f in "$SRC"/global/memory/*.md; do
+      [ -e "$f" ] || continue
+      local base; base="$(basename "$f")"
+      [ -f "$mem/$base" ] || copy_file "$f" "$mem/$base"
+    done
     note "memory store at $mem (existing facts preserved; convention is in CLAUDE.md)"
   else
     note "memory seeding skipped"
