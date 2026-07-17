@@ -1,0 +1,51 @@
+# Workspace Index
+
+> Read this first; do not blind-recurse the repos. Every repo has a path-scoped deep index at `.claude/rules/<repo>.md` that auto-loads when you touch it; open the match before editing. Section 1 is the catalog; Sections 2-3 give deeper routing for the daily-driver repos.
+
+## 1. System Topology
+
+### Core daily-drivers (deep routing in Sections 2-3)
+{{#each dailyDrivers}}
+- **`{{slug}}`:** {{stackTags}}.
+{{/each}}
+
+### Full repo catalog
+> One line per repo; open `.claude/rules/<repo>.md` for its deep index. Vendored forks are black-box: do not deep-recurse them.
+
+{{#each categories}}
+**{{name}}**
+{{#each repos}}
+- **`{{slug}}`** {{oneLiner}}{{#if vendored}} (vendored fork; black-box){{/if}}
+{{/each}}
+
+{{/each}}
+> Not indexed (empty or non-repo dirs): {{notIndexed}}.
+
+## 2. Structural Routing Triggers
+*Deep routing for the core daily-driver repos. For any other repo, open its `.claude/rules/<repo>.md`.*
+{{#each routingTriggers}}
+- {{concern}}: {{path}}.
+{{/each}}
+- Per-repo agent rules: read each repo's own `AGENTS.md`/`CLAUDE.md` where present; it is authoritative for that repo.
+
+## 3. Search & Grep Optimization
+- **File Patterns:** {{filePatterns}}.
+- **Legacy (avoid for new work):** {{legacyDirs}}.
+- **Global Deny Rules:** ignore {{denyBuildDirs}} to preserve tokens.
+- **Global Deny Rules:** ignore {{denyCacheDirs}}.
+- **Never grep-recurse (huge / vendored):** {{neverRecurse}}. Use each repo's deep index instead.
+- **Non-code zones (docs/data, not source):** {{nonCodeZones}}; read only when the task explicitly references them.
+
+## 4. Deep Index Pointers
+- Path-scoped deep indexes live in `.claude/rules/` (one `<repo>.md` per repo) and auto-load via `targets` globs when you touch a repo. Open the match before editing. Section 1 is the full catalog.
+- Core: {{coreDeepIndexes}}. Every other repo: `.claude/rules/<repo>.md`.
+- **Tracker prefixes by domain:**
+{{#each trackerPrefixes}}
+  - `{{prefix}}` {{domain}}
+{{/each}}
+
+## 5. Deeper navigation (on-demand)
+- Read `.claude/meta/navigation.md` for the doc map, the agent-instruction hierarchy, and the agent/workflow/skill guide.
+- Read `.claude/meta/integration-map.md` for the cross-repo seam graph and feature-flow playbooks (built by `/refresh-seams`); machine-readable edges in `.claude/meta/seams.json`. Each connected repo's `.claude/rules/<repo>.md` also carries an auto-generated `## Cross-repo seams` section.
+- Read `.claude/harness/seams/clusters.json` for the cluster and hunter parameters `/refresh-seams` consumes.
+- Agent and skill descriptions are injected each turn; pick by them.

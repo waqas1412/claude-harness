@@ -1,0 +1,41 @@
+---
+# This frontmatter loads the file only when you touch matching paths (path-scoped auto-load).
+id: {{AREA_SLUG}}-deep-index
+targets:
+  - "{{AREA_PATH}}/**/*"
+---
+
+# Deep Index: {{AREA_NAME}} ({{AREA_STACK}})
+
+> {{ONE_LINE_AREA_SUMMARY}}. {{KEY_TOOLING}}.
+
+## 1. Domain Component Mapping
+*Detailed breakdowns of what code handles what.*
+
+- **Core Logic:**
+  - `{{CORE_PATH_1}}` {{WHAT_IT_DOES_1}}.
+  - `{{CORE_PATH_2}}` {{WHAT_IT_DOES_2}}.
+- **State / Data Layer:**
+  - `{{STATE_PATH_1}}` {{WHAT_IT_DOES}}.
+- **Entrypoints & Triggers:**
+  - `{{ENTRY_PATH_1}}` {{WHAT_IT_DOES}}.
+
+## 2. Local Architecture Gotchas
+
+- **Risk Zones:**
+  - {{RISK_1}} (the thing that silently breaks and why).
+  - {{RISK_2}}.
+- **Strict Patterns:**
+  - {{PATTERN_1}} (the convention to repeat verbatim).
+  - {{PATTERN_2}}.
+
+## 3. Local Verification Loop
+
+- **Local Test Command:** `{{UNIT_TEST_CMD}}` (scoped: `{{UNIT_TEST_CMD_SCOPED}}`).
+- **Lint:** `{{LINT_CMD}}`. **Build:** `{{BUILD_CMD}}`. **E2E (if any):** `{{E2E_TEST_CMD}}`.
+
+## 4. Documentation Map
+*The real docs in this area; open the match instead of grepping.*
+
+- `{{DOC_1}}` {{DOC_1_DESC}}.
+- Ignore `{{GENERATED_DOC}}` (generated, not real docs).

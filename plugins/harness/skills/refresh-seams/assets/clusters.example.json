@@ -1,0 +1,27 @@
+{
+  "_comment": "Example cluster config. workspace-init writes the real one to .claude/harness/seams/clusters.json, deriving clusters FROM the repo catalog by detected platform grouping. Repo names below are neutral placeholders; replace with your workspace slugs.",
+  "root": "/abs/path/to/workspace",
+  "clusters": {
+    "services": ["web-console", "api-service", "shared-schema", "data-mart"],
+    "devices": ["device-firmware", "device-bootloader", "hw-tester"]
+  },
+  "vendored": ["upstream-rtos-fork", "upstream-crypto-fork"],
+  "excludes": ["node_modules", ".git", "dist", "build", "target", ".venv", "__pycache__", "cdk.out"],
+  "rulesFileConvention": ".claude/rules/<repo>.md",
+  "kindClusters": {
+    "http-api": "services",
+    "schema-contract": "services",
+    "data-table": "services",
+    "manifest-pin": "devices",
+    "git-submodule": "devices"
+  },
+  "kindOrder": ["pkg-import", "http-api", "schema-contract", "data-table", "queue", "manifest-pin", "git-submodule", "shared-lib", "other"],
+  "trackerPrefixes": { "SVC": "services and web", "DEV": "device and firmware" },
+  "hunters": [
+    { "key": "pkg-import", "effort": "medium", "kind": "pkg-import", "mechanism": "one repo imports a package published or vendored by another", "guidance": "read dependency manifests and import statements naming a sibling package" },
+    { "key": "http-api", "effort": "medium", "kind": "http-api", "mechanism": "a repo calls another's HTTP or REST endpoint", "guidance": "grep client base URLs and route strings, match to server routes" },
+    { "key": "schema-contract", "effort": "medium", "kind": "schema-contract", "mechanism": "a shared schema or spec generated in one repo and consumed in another", "guidance": "find spec files and their generated clients across repos" },
+    { "key": "data-table", "effort": "medium", "kind": "data-table", "mechanism": "shared datastore tables written by one repo and read by another", "guidance": "match table names across DDL and query sources" },
+    { "key": "manifest-pin", "effort": "low", "kind": "manifest-pin", "mechanism": "a manifest or submodule pinning another repo at a revision", "guidance": "read manifest and submodule files, one pinned entry per edge" }
+  ]
+}

@@ -16,6 +16,12 @@ skills, enforcement hooks) and a `/harness-init` command that tailors any reposi
   the repo's own generated index for stack and conventions, so they work in any codebase.
 - **Skills** (`plugins/harness/skills/`):
   - `/harness-init` scans the current repo and generates its navigation harness (see below).
+  - `/workspace-init` scans a multi-repo workspace root and generates the workspace router (catalog
+    CLAUDE.md, per-repo `.claude/rules/<repo>.md` deep indexes, navigation, and a
+    `.claude/harness/seams/` cluster config). Complements `/harness-init`, does not replace it.
+  - `/refresh-seams` rebuilds the cross-repo integration map: evidence-based seam discovery by
+    parallel hunter agents, every edge verified by `file:line` proof, emitting
+    `.claude/meta/seams.json`, per-repo seam sections, and `.claude/meta/integration-map.md`.
   - `/orchestrate` runs a change through the multi-agent PLAN and VERIFY loop in one command.
   - `/pr` and `/ticket` write to house templates, reading project tokens from a per-repo profile.
 - **Enforcement hooks** (`plugins/harness/hooks/`): PreToolUse guards that mechanically block a
