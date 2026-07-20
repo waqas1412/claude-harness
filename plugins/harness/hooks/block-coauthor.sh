@@ -4,7 +4,7 @@
 cmd=$(jq -r '.tool_input.command // ""')
 case "$cmd" in
   *"git commit"*)
-    if printf '%s' "$cmd" | grep -qi 'Co-Authored-By'; then
+    if printf '%s' "$cmd" | grep -qiE 'Co-Authored-By:'; then
       echo "Blocked: no Co-Authored-By trailer (sole author). See commit-authorship rule." >&2
       exit 2
     fi

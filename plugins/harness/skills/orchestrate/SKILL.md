@@ -11,8 +11,19 @@ A recipe, not an engine. It names which read-only advisors fire at each gate and
 parallel. The main loop is the brain: it plans, delegates, and gates. A single sequential executor
 agent (model: sonnet, one per repo) applies edits and runs git and the authoritative lint/build/test,
 returning condensed reports; the advisors only advise. Dispatch agents with the native Task tool,
-concurrently within a gate. Scale the roster to the task: a one-file fix needs two advisors, a
-cross-cutting change needs the full panel.
+concurrently within a gate. Scale the roster to the task: a one-file fix needs two advisors (one
+PLAN, one VERIFY), a feature or multi-file change needs three to five relevant lenses per gate, a
+cross-cutting or architecture change needs the full panel. Each parallel advisor is a full context
+window, so only widen the roster when the added lens would plausibly change the go/no-go.
+
+## Dispatch contract
+
+Every agent dispatch carries four things: (1) Objective, the one question this lens answers for this
+task; (2) Scope, the exact files or diff hunks in view plus the pinned baseline (plan, ticket, spec,
+or design source); (3) Return format, the condensed digest already defined in the working agreements
+(roughly 1-2k tokens, file:line pointers, a verdict, never raw logs or full-file dumps); (4)
+Boundaries, what to ignore and which sibling owns it. Underspecified dispatches produce duplicated or
+drifting findings.
 
 ## Gate 1: PLAN (before writing code)
 
@@ -22,16 +33,19 @@ Dispatch in parallel the relevant subset, then synthesize their outputs into one
 - `principles-engineer` reuse vs new code, right-sizing, guard against over-engineering.
 - `design-principles-advisor` structural soundness (SOLID/GRASP/coupling) for larger designs.
 - `docs-researcher` version-correct library usage when the change touches an external dependency.
-- `spec-fidelity-auditor` pins the spec baseline, lints the acceptance criteria, and seeds the
-  traceability matrix, when the change has a ticket/spec/KB.
+- `spec-fidelity-auditor` pins the baseline (ticket/spec/KB, or the agreed plan when none exists),
+  lints the acceptance criteria, and seeds the traceability matrix.
 - `design-parity-auditor` pins the design source and produces the token bridge, state matrix, and
   breakpoint table, when the change implements a design file.
 - `data-flow-timing-auditor` settlement contracts and gate design, when the feature has one-shot
   effects (analytics, seeds, redirects, caches, queue acks).
 
-Output of this gate: a single agreed plan (placement, signatures, test plan, risks). If the advisors
-disagree, resolve it in the plan before coding. For an untested target, write characterization tests
-that pin current behavior and get them green first.
+Output of this gate: a single agreed plan (placement, signatures, test plan, risks, surfaced
+assumptions). Before locking the plan, list the assumptions the request leaves implicit (missing
+flows, unspecified inputs, defaults being guessed) and resolve or flag each; a non-trivial plan that
+names zero assumptions is under-examined. If the advisors disagree, resolve it in the plan before
+coding. For an untested target, write characterization tests that pin current behavior and get them
+green first.
 
 ## Implement (via the executor agent)
 
@@ -42,12 +56,18 @@ commit. Never run mutating agents in parallel in the same working dir; one execu
 
 ## Gate 2: VERIFY (after the diff exists, before commit)
 
-Have the executor agent run the authoritative lint/build/change-related tests and report results
-first, then dispatch in parallel:
+The executor runs the authoritative lint/build/change-related tests first for fast feedback and
+reports the commands and results; `developer-reviewer` then re-runs those same commands itself in its
+own context and pastes the raw output (exit codes, failing test names). Go/no-go gates on that
+independent run, never on the executor's self-reported green. Dispatch in parallel:
 - `developer-reviewer` correctness, invariants, boundary/nil/ordering, test coverage red to green,
-  AGENTS.md compliance. Adversarial: it tries to break the diff.
-- `spec-fidelity-auditor` bidirectional trace against the ticket/spec/KB: every criterion delivered
-  at its promised evidence grade, every hunk traced or dispositioned (gold plating, scope creep).
+  AGENTS.md compliance. Adversarial: it tries to break the diff. Diff the test files: a deleted
+  test, a newly added skip, or a loosened assertion used to reach green is a no-go finding, not a
+  fix (tests are the referee; the diff may add tests but must not weaken or delete them). Skip
+  explicitly when the diff touches no test files.
+- `spec-fidelity-auditor` bidirectional trace against the ticket/spec/KB, or against the agreed
+  Gate 1 plan when no external spec exists: every criterion delivered at its promised evidence
+  grade, every hunk traced or dispositioned (gold plating, scope creep).
 - `design-parity-auditor` parity against the pinned design source: token identity, layout semantics,
   state matrix, breakpoints, WCAG floors (UI changes; state Figma = N/A explicitly otherwise).
 - `data-flow-timing-auditor` provenance audit of the diff's inputs: settlement, proxy gates,
@@ -59,7 +79,9 @@ first, then dispatch in parallel:
 Each VERIFY finding is triaged: fix it, or record why it is acceptable. Lens verdicts must cite
 concrete evidence (file:line or real output); right-size the panel for trivial diffs, with skips
 declared explicitly, never silent. Gate the commit on an explicit go/no-go: do not commit with an
-unresolved correctness finding.
+unresolved correctness finding. The fix-then-re-verify cycle is bounded: if VERIFY stays no-go after
+two fix rounds on the same class of finding, stop, summarize the unresolved finding and what was
+tried, and surface it to the user for a decision instead of iterating further.
 
 ## Commit
 

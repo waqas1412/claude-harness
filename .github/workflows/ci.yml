@@ -11,6 +11,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install tools
+        # shellcheck installed here makes CI the authoritative lint gate; a local run without it
+        # falls back to syntax-only and says so.
         run: sudo apt-get update && sudo apt-get install -y jq shellcheck
       - name: Structural validation
         run: ./scripts/validate.sh

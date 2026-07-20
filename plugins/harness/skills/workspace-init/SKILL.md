@@ -75,10 +75,16 @@ Keep catalog one-liners to a single sentence each; favor density over prose.
 On `--refresh`, regenerate all artifacts but preserve human content: the root CLAUDE.md and navigation.md are fully regenerated (they are ours); per-repo rules files are regenerated body-and-frontmatter, but if refresh-seams has already written a `## Cross-repo seams` section between `<!-- seams:start -->` / `<!-- seams:end -->`, leave that block verbatim. Never touch a child repo's own `AGENTS.md`/`CLAUDE.md`.
 
 ## Phase 7: self-verify gate (haiku sweep + main-loop check)
-Delegate a mechanical `haiku` agent to: extract every backtick path from `CLAUDE.md`, `.claude/meta/navigation.md`, and each `.claude/rules/<repo>.md`, and `test -e` each (report misses); sweep all generated files for the em-dash character U+2014 (report any); confirm every generated rules file has valid frontmatter and that its `targets` glob starts with its own slug. The main loop fixes or drops anything flagged before reporting. Then remind the user that `refresh-seams` can now build the cross-repo integration map from the cluster config just written.
+Delegate a mechanical `haiku` agent to run the SAME deterministic core `harness-init` bundles, `plugins/harness/skills/harness-init/assets/verify-generated.sh` (reference it, never ship a second copy, a duplicate re-introduces the drift the shared script removes), over `CLAUDE.md`, `.claude/meta/navigation.md`, and each `.claude/rules/<repo>.md`: it test-e's every backtick path, sweeps for the em-dash U+2014, and checks harness-marker balance, printing a `RESULT` line. On top of the script's output, the agent still confirms in prose that every generated rules file has valid frontmatter and that its `targets` glob starts with its own slug (a judgment check the script does not make). The main loop fixes or drops anything flagged before reporting. Then remind the user that `refresh-seams` can now build the cross-repo integration map from the cluster config just written.
 
 ## Report
 List repos cataloged (by category), deep indexes written, the derived clusters and their members, non-indexed dirs, any recorded ASSUMPTIONS, and any self-verify fixes.
 
 ## Scope discipline
 Ask the user only when a decision is genuinely blocking (for example the workspace root is ambiguous or a "repo" is actually a submodule host). Otherwise infer and proceed, recording uncertainty. A tiny workspace (a handful of repos) needs only the scan-and-write path; do not spin up advisor panels or the opus taxonomy step unless cluster boundaries are genuinely unclear.
+
+## Gotchas
+- A Phase 2 scan agent recursing into a vendored/forked repo's full source instead of returning a black-box summary; it burns the scan budget and pastes upstream code into the digest.
+- A per-repo deep index whose `targets` glob does not start with its own repo slug, so it silently matches nothing (or the wrong repo) on auto-load.
+- Regenerating a per-repo rules file on `--refresh` and clobbering an existing `## Cross-repo seams` block instead of preserving it between its `<!-- seams:start -->`/`<!-- seams:end -->` markers.
+- Spinning up the opus cluster-taxonomy step or a full advisor panel for a two- or three-repo workspace when the boundaries are already obvious from the Phase 1 catalog.

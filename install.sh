@@ -146,6 +146,7 @@ merge_settings() {
   local h="$CLAUDE_HOME/hooks"
   jq --arg co "sh \"$h/block-coauthor.sh\"" \
      --arg pr "sh \"$h/block-pr-reviewer.sh\"" \
+     --arg fp "sh \"$h/block-force-push.sh\"" \
      --arg md "sh \"$h/block-md-emdash.sh\"" '
     .hooks //= {} | .hooks.PreToolUse //= []
     # remove any existing harness hook entries (commands referencing /hooks/block-*)
@@ -153,7 +154,7 @@ merge_settings() {
         .hooks |= ( (. // []) | map(select((.command // "") | test("/hooks/block-") | not)) )
       ) | map(select((.hooks // []) | length > 0)) )
     | .hooks.PreToolUse += [
-        { "matcher": "Bash", "hooks": [ {"type":"command","command":$co}, {"type":"command","command":$pr} ] },
+        { "matcher": "Bash", "hooks": [ {"type":"command","command":$co}, {"type":"command","command":$pr}, {"type":"command","command":$fp}, {"type":"command","command":$md} ] },
         { "matcher": "Write|Edit", "hooks": [ {"type":"command","command":$md} ] }
       ]
   ' "$tmp" > "$tmp.h" && mv "$tmp.h" "$tmp"
@@ -204,7 +205,7 @@ install_capabilities() {
       copy_file "$f" "$CLAUDE_HOME/hooks/$(basename "$f")"
       chmod +x "$CLAUDE_HOME/hooks/$(basename "$f")"
     done
-    note "3 enforcement hooks (coauthor, pr-reviewer, md-emdash)"
+    note "4 enforcement hooks (coauthor, pr-reviewer, force-push, md-emdash)"
   fi
 
   if [ "$WITH_MEMORY" = 1 ] && [ "$WITH_GLOBAL" = 1 ]; then
@@ -231,7 +232,7 @@ do_check() {
     && note "CLAUDE.md managed block present" || { note "MISSING: CLAUDE.md managed block"; ok=0; }
   if [ -f "$CLAUDE_HOME/settings.json" ]; then
     jq -e . "$CLAUDE_HOME/settings.json" >/dev/null && note "settings.json is valid JSON" || { note "INVALID settings.json"; ok=0; }
-    for s in block-coauthor block-pr-reviewer block-md-emdash; do
+    for s in block-coauthor block-pr-reviewer block-force-push block-md-emdash; do
       if jq -e --arg s "$s" '.. | .command? // empty | select(test($s))' "$CLAUDE_HOME/settings.json" >/dev/null 2>&1; then
         [ -f "$CLAUDE_HOME/hooks/$s.sh" ] && note "hook wired + present: $s" || { note "WIRED BUT MISSING: hooks/$s.sh"; ok=0; }
       else
@@ -254,18 +255,38 @@ do_check() {
   _ec() { printf '%s' "$2" | sh "$h/$1" >/dev/null 2>&1; echo $?; }
   if [ -f "$h/block-coauthor.sh" ]; then
     [ "$(_ec block-coauthor.sh '{"tool_input":{"command":"git commit -m \"x\n\nCo-Authored-By: A <a@b.c>\""}}')" = 2 ] \
+      && [ "$(_ec block-coauthor.sh '{"tool_input":{"command":"git commit --trailer \"Co-authored-by: A <a@b.c>\""}}')" = 2 ] \
       && [ "$(_ec block-coauthor.sh '{"tool_input":{"command":"git commit -m ok"}}')" = 0 ] \
+      && [ "$(_ec block-coauthor.sh '{"tool_input":{"command":"git commit -m \"refactor the co-authored-by parser\""}}')" = 0 ] \
       && note "behavior: block-coauthor denies+allows" || { note "BEHAVIOR FAIL: block-coauthor"; ok=0; }
   fi
   if [ -f "$h/block-pr-reviewer.sh" ]; then
     [ "$(_ec block-pr-reviewer.sh '{"tool_input":{"command":"gh pr create --reviewer x"}}')" = 2 ] \
+      && [ "$(_ec block-pr-reviewer.sh '{"tool_input":{"command":"gh pr create --reviewer=alice"}}')" = 2 ] \
+      && [ "$(_ec block-pr-reviewer.sh '{"tool_input":{"command":"gh pr edit 1 --add-reviewer=bob"}}')" = 2 ] \
       && [ "$(_ec block-pr-reviewer.sh '{"tool_input":{"command":"gh pr create --base main"}}')" = 0 ] \
       && note "behavior: block-pr-reviewer denies+allows" || { note "BEHAVIOR FAIL: block-pr-reviewer"; ok=0; }
+  fi
+  if [ -f "$h/block-force-push.sh" ]; then
+    [ "$(_ec block-force-push.sh '{"tool_input":{"command":"git push --force"}}')" = 2 ] \
+      && [ "$(_ec block-force-push.sh '{"tool_input":{"command":"git push --force-with-lease"}}')" = 0 ] \
+      && note "behavior: block-force-push denies+allows" || { note "BEHAVIOR FAIL: block-force-push"; ok=0; }
   fi
   if [ -f "$h/block-md-emdash.sh" ]; then
     [ "$(_ec block-md-emdash.sh "$(printf '{"tool_input":{"file_path":"/x/a.md","content":"a %s b"}}' "$em")")" = 2 ] \
       && [ "$(_ec block-md-emdash.sh '{"tool_input":{"file_path":"/x/a.md","content":"a, b"}}')" = 0 ] \
+      && [ "$(_ec block-md-emdash.sh "$(printf '{"tool_name":"Bash","tool_input":{"command":"git commit -m fix%sready"}}' "$em")")" = 2 ] \
+      && [ "$(_ec block-md-emdash.sh "$(printf '{"tool_name":"Bash","tool_input":{"command":"cat notes%s.md"}}' "$em")")" = 0 ] \
       && note "behavior: block-md-emdash denies+allows" || { note "BEHAVIOR FAIL: block-md-emdash"; ok=0; }
+  fi
+
+  # jq preflight: every hook parses the tool-call JSON with jq, so a hook runtime that cannot resolve
+  # jq silently allows everything (the documented Windows no-op). Surface it loudly here; the hooks
+  # themselves stay fail-open so a jq-less shell is not bricked for every Bash and Write/Edit call.
+  if command -v jq >/dev/null 2>&1; then
+    note "jq reachable for hook runtime: $(command -v jq)"
+  else
+    note "JQ UNREACHABLE: hooks will silently no-op. Prepend /usr/bin and jq to PATH (windows-hook-wiring)."; ok=0
   fi
 
   # memory store + bidirectional pointer integrity: every fact file is listed in MEMORY.md, and

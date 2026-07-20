@@ -32,3 +32,8 @@ fill it from the profile tokens. Delete every section that does not apply; ship 
 - PR no reviewers: `gh pr create` with title/body/base only; no `--reviewer`, no requested_reviewers mutations.
 
 Apply via `gh pr create` (title via `--title`, body via `--body` or `--body-file`). Governs description content and structure only.
+
+## Gotchas
+- No `.claude/harness/profile.md`: proceeding on guessed tokens instead of running `/harness-init` first leaves `TICKET_PREFIX`/`LINT_CMD` inferred rather than resolved; infer and note it, but prefer generating the profile.
+- Hand-rolling the body from memory instead of reading `references/pr-template.md`, which drifts from the house Testing/Screenshots structure over time.
+- Leaving an empty section heading (for example an unused Screenshots block) instead of deleting it, which reads as unfinished rather than a deliberate skip.
