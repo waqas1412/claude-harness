@@ -3,6 +3,7 @@ name: workspace-init
 description: Scan a multi-repo workspace root (a directory whose children are independent git repos) and generate a workspace navigation harness: a catalog CLAUDE.md router, per-repo .claude/rules/<repo>.md deep indexes with auto-load wiring, .claude/meta/navigation.md, and a .claude/harness/seams/ cluster config ready for refresh-seams. Complements single-repo harness-init, never replaces it. Use to bootstrap or refresh a workspace of repos, or when asked to "harness this workspace", index a monorepo-of-repos, or set up a workspace router.
 argument-hint: "[--refresh] [optional: scope, e.g. one category or a subset of repo names]"
 allowed-tools: Read, Grep, Glob, Agent, Workflow
+disable-model-invocation: true
 ---
 
 # /workspace-init: harness a multi-repo workspace
@@ -84,6 +85,8 @@ List repos cataloged (by category), deep indexes written, the derived clusters a
 Ask the user only when a decision is genuinely blocking (for example the workspace root is ambiguous or a "repo" is actually a submodule host). Otherwise infer and proceed, recording uncertainty. A tiny workspace (a handful of repos) needs only the scan-and-write path; do not spin up advisor panels or the opus taxonomy step unless cluster boundaries are genuinely unclear.
 
 ## Gotchas
+- Auto-invocation is disabled by design; this skill overwrites committed navigation artifacts, so
+  run it via the slash command on purpose.
 - A Phase 2 scan agent recursing into a vendored/forked repo's full source instead of returning a black-box summary; it burns the scan budget and pastes upstream code into the digest.
 - A per-repo deep index whose `targets` glob does not start with its own repo slug, so it silently matches nothing (or the wrong repo) on auto-load.
 - Regenerating a per-repo rules file on `--refresh` and clobbering an existing `## Cross-repo seams` block instead of preserving it between its `<!-- seams:start -->`/`<!-- seams:end -->` markers.

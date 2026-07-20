@@ -3,6 +3,7 @@ name: harness-init
 description: Scan the current repository and generate a tailored navigation harness (root CLAUDE.md index, path-scoped .claude/rules/*.md deep indexes, .claude/meta/navigation.md, and a .claude/harness/profile.md consumed by /pr and /ticket). Runs autonomously: infers stack, areas, verify commands, and conventions, then writes the files. Use to bootstrap or refresh a repo's harness, or when asked to "harness this project", set up CLAUDE.md, or index a codebase.
 argument-hint: "[--refresh] [--emit codex] [optional: area/path to focus]"
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit
+disable-model-invocation: true
 ---
 
 # /harness-init: self-adapting project bootstrap
@@ -235,6 +236,8 @@ Emit `AGENTS.md` only: no per-harness packaging, MCP inventories, or transpile p
 
 ## Gotchas
 
+- Auto-invocation is disabled by design; this skill overwrites committed navigation artifacts, so
+  run it via the slash command on purpose.
 - Inventing a plausible-looking path (a renamed or moved dir) ships a broken pointer; the Phase 7
   `test -e` sweep is required, not optional, because this is the single most common failure.
 - Overwriting a hand-maintained root `CLAUDE.md` or rule file that has no harness markers instead of
