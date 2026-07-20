@@ -34,3 +34,8 @@ resolved profile commands; no em dashes anywhere; tracker key and links resolve.
 
 ## Composes with (does not override)
 Avoid-em-dash rule; characterization-tests-first; migrate-then-delete grep gate; verify-before-git-ops.
+
+## Gotchas
+- No `.claude/harness/profile.md`: drafting against an assumed tracker prefix instead of falling back to a backlog markdown file plus a linked GitHub issue when no tracker is configured.
+- Skipping Out-of-scope because it "seems obvious," when the template requires it on every ticket.
+- Writing a refactor ticket that jumps straight to the intended change instead of a characterization-first plan (pin current behavior green, then refactor, then red to green).

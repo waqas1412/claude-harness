@@ -7,16 +7,13 @@ One file per fact, with frontmatter (`name`, `description`, `metadata.type` = us
 project | reference). Add a one-line pointer here when you create a memory file.
 
 ## User
-- [User background](user_background.md) — JS developer learning Go; anchor Go explanations in JS analogies first.
+(none yet)
 
 ## Feedback
-- [No Fable for subagents](feedback_no_fable_for_subagents.md) — main loop is the brain only, it never
-  executes actions itself; every delegated agent gets an explicitly pinned non-session model (opus for
-  hard reasoning, sonnet as the executor default, haiku for mechanical sweeps); agents report back a
-  condensed digest (roughly 1-2k tokens with file:line pointers), never raw logs or dumps.
+(none yet)
 
 ## Projects
 (none yet)
 
 ## Reference
-(none yet)
+- [MCP tool search](mcp-tool-search.md) — MCP-heavy installs: prefer on-demand tool discovery over loading every tool definition upfront

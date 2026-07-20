@@ -21,13 +21,15 @@ targets:
   - `{{ENTRY_PATH_1}}` {{WHAT_IT_DOES}}.
 
 ## 2. Local Architecture Gotchas
+*Risk Zones is the highest-signal section: write each as a concrete failure statement (trigger
+action, silent-wrong result, guardrail), not a restatement of an obvious default.*
 
 - **Risk Zones:**
-  - {{RISK_1}} (the thing that silently breaks and why).
-  - {{RISK_2}}.
+  - {{RISK_1}} (concrete: doing X silently yields wrong Y; guard by Z).
+  - {{RISK_2}} (same concrete shape).
 - **Strict Patterns:**
-  - {{PATTERN_1}} (the convention to repeat verbatim).
-  - {{PATTERN_2}}.
+  - {{PATTERN_1}} (mirror `{{EXEMPLAR_PATH_1}}`).
+  - {{PATTERN_2}} (mirror `{{EXEMPLAR_PATH_2}}`).
 
 ## 3. Local Verification Loop
 

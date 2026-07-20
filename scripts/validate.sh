@@ -9,8 +9,10 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PLUGIN="$ROOT/plugins/harness"; AGENTS="$PLUGIN/agents"; SKILLS="$PLUGIN/skills"; HOOKS="$PLUGIN/hooks"
 FAILS=0
-err() { printf 'FAIL  %s\n' "$1" >&2; FAILS=$((FAILS + 1)); }
-ok()  { printf 'ok    %s\n' "$1"; }
+SYNTAX_ONLY=0
+err()  { printf 'FAIL  %s\n' "$1" >&2; FAILS=$((FAILS + 1)); }
+warn() { printf 'WARN  %s\n' "$1" >&2; }
+ok()   { printf 'ok    %s\n' "$1"; }
 command -v jq >/dev/null 2>&1 || { echo "jq is required" >&2; exit 2; }
 
 fm()    { awk 'NR==1 && $0=="---"{f=1;next} f && $0=="---"{exit} f{print}' "$1"; }
@@ -55,11 +57,19 @@ done
 ok "agents scanned: $(echo "$agent_slugs" | wc -w | tr -d ' ')"
 
 echo "== skills =="
+RO_SKILLS="pr ticket orchestrate workspace-init refresh-seams"
 for d in "$SKILLS"/*/; do
   s=$(basename "$d"); f="$d/SKILL.md"
   [ -f "$f" ] || { err "skill $s: missing SKILL.md"; continue; }
   [ "$(fmval "$f" name)" = "$s" ] || err "skill $s: name != dirname"
   [ -n "$(fmval "$f" description)" ] || err "skill $s: missing description"
+  at=$(fmval "$f" allowed-tools)
+  [ -n "$at" ] || err "skill $s: missing allowed-tools"
+  if is_in "$s" $RO_SKILLS; then
+    for t in $(echo "$at" | tr ',' ' '); do
+      { [ "$t" = "Write" ] || [ "$t" = "Edit" ]; } && warn "skill $s: read-only skill lists mutating tool '$t'"
+    done
+  fi
   ok "skill $s"
 done
 
@@ -68,16 +78,26 @@ for s in $(jq -r '.hooks.PreToolUse[].hooks[].command' "$HOOKS/hooks.json" | gre
   [ -f "$HOOKS/$s" ] && ok "hook $s present" || err "hooks.json references missing $s"
 done
 
+echo "== hooks tested =="
+for f in "$HOOKS"/block-*.sh; do
+  b=$(basename "$f")
+  grep -q "$b" "$ROOT/tests/run-hook-tests.sh" && ok "hook $b has behavioral test" || err "hook $b has no behavioral test"
+done
+
 echo "== shell lint =="
 BASH_FILES="install.sh uninstall.sh scripts/validate.sh scripts/bump-version.sh tests/run-hook-tests.sh"
-SH_FILES="plugins/harness/hooks/block-coauthor.sh plugins/harness/hooks/block-pr-reviewer.sh plugins/harness/hooks/block-md-emdash.sh"
+SH_FILES="plugins/harness/hooks/block-coauthor.sh plugins/harness/hooks/block-pr-reviewer.sh plugins/harness/hooks/block-md-emdash.sh plugins/harness/skills/harness-init/assets/verify-generated.sh"
 for b in $BASH_FILES; do [ -f "$ROOT/$b" ] && { bash -n "$ROOT/$b" 2>/dev/null && ok "bash -n $b" || err "syntax error $b"; }; done
 for s in $SH_FILES; do [ -f "$ROOT/$s" ] && { sh -n "$ROOT/$s" 2>/dev/null && ok "sh -n $s" || err "syntax error $s"; }; done
 if command -v shellcheck >/dev/null 2>&1; then
   for f in $BASH_FILES $SH_FILES; do [ -f "$ROOT/$f" ] && { shellcheck -S error "$ROOT/$f" >/dev/null 2>&1 && ok "shellcheck $f" || err "shellcheck errors in $f"; }; done
 else
-  ok "shellcheck not installed (syntax-only lint applied)"
+  SYNTAX_ONLY=1
+  warn "shellcheck absent: lint grade reduced to syntax-only; CI runs the full lint"
 fi
 
 echo
-if [ "$FAILS" -eq 0 ]; then echo "VALIDATION PASSED"; exit 0; else echo "VALIDATION FAILED ($FAILS issue(s))"; exit 1; fi
+if [ "$FAILS" -eq 0 ]; then
+  if [ "$SYNTAX_ONLY" -eq 1 ]; then echo "VALIDATION PASSED (syntax-only lint; shellcheck absent)"; else echo "VALIDATION PASSED"; fi
+  exit 0
+else echo "VALIDATION FAILED ($FAILS issue(s))"; exit 1; fi

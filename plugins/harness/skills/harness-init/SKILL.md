@@ -50,6 +50,10 @@ Run a fast, read-only scan. Prefer Bash one-liners and Glob over reading whole f
   user would type them (e.g. `yarn lint`, `make test`, `uv run pytest`, `go build ./...`).
 - **Docs and rules:** find `AGENTS.md`, `CLAUDE.md`, `README*`, `CONTRIBUTING*`, `docs/**`, and any
   spec/KB dirs. Note per-area `AGENTS.md` as authoritative.
+- **Setup and environment quirks:** check for `.env.example`/`.env.sample`, `.envrc`,
+  `.tool-versions`/`.nvmrc`, `docker-compose*.yml`, a `.devcontainer`, and a README
+  Setup/Prerequisites/Getting-started section. Route real signals to the profile (Phase 2) and the
+  Phase 6 memory fact; do not add a new root CLAUDE.md section for these.
 - **Deny zones:** standard ignores plus anything large/generated you actually see
   (`node_modules`, `.next`, `dist`, `build`, `out`, `target`, `cdk.out`, `.git`, `.venv`,
   `__pycache__`, `*.egg-info`, `vendor`, generated `sqlc`/codegen dirs, test-report/snapshot dirs).
@@ -83,13 +87,18 @@ read. Keep it terse and machine-readable.
 - E2E_TEST_CMD: {{per area or none}}
 - BUILD_CMD: {{per area}}
 - WEB_UI: {{true|false}} (enables design-system/analytics sections in /ticket)
+- SETUP_QUIRKS: {{required env vars, version-manager pins, a mandatory bootstrap command; empty if none}}
 - ASSUMPTIONS: {{anything inferred with low confidence, for the user to correct}}
 <!-- harness:end -->
 ```
 
 ## Phase 3: Write the root CLAUDE.md index
 
-Follow this structure (fill from Phase 1, drop empty sections). Keep it scannable and under ~200 lines.
+Follow this structure (fill from Phase 1, drop empty sections). For every candidate line, apply the
+removal test: would removing this cause Claude to make a mistake? If not, drop it. Include
+non-guessable verify/bash commands, project-specific conventions and gotchas, and real routing
+triggers; exclude anything inferable by reading code, standard language defaults, and self-evident
+advice. Keep it scannable and under ~200 lines as a secondary ceiling.
 
 ```markdown
 # {{Project}} Index
@@ -142,8 +151,8 @@ targets:
 - **Entrypoints & Triggers:** `{{path}}` {{what}}.
 
 ## 2. Local Architecture Gotchas
-- **Risk Zones:** {{what silently breaks and why}}.
-- **Strict Patterns:** {{the convention to repeat verbatim}}.
+- **Risk Zones:** {{concrete: doing X silently yields wrong Y; guard by Z}}.
+- **Strict Patterns:** {{the convention to repeat verbatim}} (mirror `{{exemplar path}}`).
 
 ## 3. Local Verification Loop
 - **Test:** `{{UNIT_TEST_CMD}}`. **Lint:** `{{LINT_CMD}}`. **Build:** `{{BUILD_CMD}}`. **E2E:** `{{E2E_TEST_CMD}}`.
@@ -152,9 +161,17 @@ targets:
 - `{{doc}}` {{desc}}. Ignore `{{generated}}`.
 ```
 
+Risk Zones is the highest-value part of each deep index: write each as a concrete failure statement
+(trigger action, silent-wrong result, guardrail), favoring gotchas that push off Claude's default
+behavior over restating obvious defaults. Anchor each Strict Pattern to a path-only exemplar, the
+cleanest existing instance in the repo; do not add a line number inside the backticks, it breaks the
+Phase 7 path check. Anchor a Risk Zone the same way only when a clean exemplar exists.
+
 Note on `targets`: this repo's convention is the `targets:` glob list (matches the workspace's
 existing rule files). If your Claude Code build expects `paths:` instead, emit `paths:` with the same
-globs; the rest of the file is identical.
+globs; the rest of the file is identical. Either field must be non-empty: an unscoped rule loads at
+session start and persists like CLAUDE.md, burning tokens even when its area goes untouched. Phase 7
+asserts this before reporting.
 
 ## Phase 5: Write navigation.md
 
@@ -167,19 +184,27 @@ Agents/Workflows/Skills guide (the read-only advisor roster and key skills), and
 ## Phase 6: Project memory scaffold
 
 Write `.claude/memory/` with a `MEMORY.md` index and exactly one starter fact capturing project
-context the scan already learned (stack, areas, the rationale behind the verify commands) as
-`project-context.md` with frontmatter (`name`, `description`, `metadata.type: project`). Wrap the
+context the scan already learned (stack, areas, the rationale behind the verify commands, and any
+setup/environment quirks detected in Phase 1: required env vars, version-manager pins, a mandatory
+bootstrap command) as `project-context.md` with frontmatter (`name`, `description`,
+`metadata.type: project`). Wrap the
 managed parts in `<!-- harness:start -->` and `<!-- harness:end -->` so `--refresh` is idempotent and
 a user's later facts survive. Use the same one-fact-per-file convention as the global memory store; do
 not scatter state files into the repo root. Record a commit-vs-gitignore decision in ASSUMPTIONS.
 
 ## Phase 7: Self-verify
 
-Prove the no-invented-paths contract mechanically before reporting:
-- Extract every backtick-quoted path from the generated `CLAUDE.md` and each `.claude/rules/*.md`.
-- For each, run `test -e` (or a `git ls-files` match); remove or correct any path that does not exist.
+Prove the no-invented-paths contract mechanically before reporting. Run the bundled deterministic
+core, then apply the judgment-bearing checks yourself:
+- From the repo root, run this skill's `assets/verify-generated.sh` over the generated files, for
+  example `sh assets/verify-generated.sh CLAUDE.md .claude/rules/*.md`. It test-e's every
+  backtick-quoted path, sweeps for the em-dash U+2014, and checks per-file harness-marker balance,
+  printing one `RESULT ... verified=N missing=N emdash=N markers_unbalanced=N` line. Remove or
+  correct anything it flags, then re-run until it prints `RESULT pass`.
 - For each rules file, confirm its `targets:` glob matches at least one real file; widen or drop it if not.
-- Carry verified-vs-dropped counts into the Phase 8 report.
+- For each rules file, confirm a `targets:` (or `paths:`) field is present and non-empty; if absent or
+  empty, add a scoped glob before writing, never ship an unscoped, always-loaded rule.
+- Carry the script's verified-vs-dropped counts into the Phase 8 report.
 
 ## Phase 8: Report
 
@@ -187,6 +212,12 @@ Summarize: the areas detected, the verify commands resolved per area, the files 
 the tracker/prefix inference, the self-verify verified-vs-dropped path counts, and every low-confidence
 ASSUMPTION the user should confirm. Suggest, but do not auto-apply, project-scoped permission allow-rules
 for the verify commands (those belong in the project's `.claude/settings.json`, not user-global).
+
+Close with a maintenance note: the generated CLAUDE.md and `.claude/rules/*.md` are living documents,
+not a one-shot deliverable, to be pruned like code. If Claude keeps ignoring a rule, the file is likely
+too long and the rule is getting lost, so prune it, or, if it is a deterministic mechanical rule,
+convert it to a PreToolUse hook. Point the user to re-run `/harness-init --refresh` after significant
+structural change.
 
 ## Optional: --emit codex (AGENTS.md)
 
@@ -201,3 +232,14 @@ Emit `AGENTS.md` only: no per-harness packaging, MCP inventories, or transpile p
 - Record uncertainty in `ASSUMPTIONS`, do not hide it.
 - Re-running with `--refresh` must be idempotent: same repo state yields the same files, and existing
   hand-written prose outside the markers is preserved.
+
+## Gotchas
+
+- Inventing a plausible-looking path (a renamed or moved dir) ships a broken pointer; the Phase 7
+  `test -e` sweep is required, not optional, because this is the single most common failure.
+- Overwriting a hand-maintained root `CLAUDE.md` or rule file that has no harness markers instead of
+  backing it up first; check for `<!-- harness:start -->` before writing, never clobber unmarked prose.
+- Shipping a `.claude/rules/*.md` with an empty or missing `targets`/`paths` field, so it loads
+  unscoped at every session start like CLAUDE.md; always widen or drop the glob before writing.
+- Treating an area's own `AGENTS.md` as optional context instead of authoritative, so the generated
+  deep index restates or contradicts it instead of pointing to it.

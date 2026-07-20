@@ -62,3 +62,9 @@ Edge counts (verified vs files-ok), repo and external counts, per-cluster counts
 
 ## Scope discipline
 Do not invent edges, paths, or proofs; every edge in the output traces to a grep-matched source line. Do not deep-recurse vendored or huge repos. Right-size the hunter panel to the workspace. Ask the user only if the cluster config is missing or malformed (point them at `workspace-init`); otherwise infer and proceed, recording any low-confidence edges as `confidence: low` rather than dropping them silently.
+
+## Gotchas
+- A hunter recursing into a vendored/base repo's full source instead of finding only the consumer-side reference, which floods the journal with noise edges.
+- An edge whose `proof` string is stale or paraphrased so it no longer matches the cited file's text; build.py drops it rather than half-verifying it, so a hunter must quote the literal line.
+- A `## Cross-repo seams` block missing its `<!-- seams:end -->` marker, which breaks Phase 3's replace-vs-append logic for that repo and Phase 5's marker-balance check.
+- A missing or malformed `.claude/harness/seams/clusters.json` (or a stale workspace-local override) silently narrowing or misrouting the hunter set; treat that as blocking, not something to guess past.

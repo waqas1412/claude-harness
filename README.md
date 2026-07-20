@@ -23,6 +23,9 @@ skills, enforcement hooks) and a `/harness-init` command that tailors any reposi
     parallel hunter agents, every edge verified by `file:line` proof, emitting
     `.claude/meta/seams.json`, per-repo seam sections, and `.claude/meta/integration-map.md`.
   - `/orchestrate` runs a change through the multi-agent PLAN and VERIFY loop in one command.
+  - `/harness-distill` distills durable learnings from recent sessions and code-review corrections
+    into proposed memory facts, CLAUDE.md rules, or skill Gotchas, verified by a skeptic and gated on
+    your approval.
   - `/pr` and `/ticket` write to house templates, reading project tokens from a per-repo profile.
 - **Enforcement hooks** (`plugins/harness/hooks/`): PreToolUse guards that mechanically block a
   Co-Authored-By trailer, a reviewer flag on `gh pr` (and `requested_reviewers` via `gh api`), and an
@@ -143,7 +146,7 @@ claude-harness/
   plugins/harness/
     .claude-plugin/plugin.json     plugin manifest
     agents/                        advisor agents
-    skills/{harness-init,orchestrate,pr,ticket}/   SKILL.md (+ pr/ticket references/)
+    skills/{harness-init,orchestrate,harness-distill,pr,ticket}/   SKILL.md (+ references/)
     hooks/{hooks.json, block-*.sh} enforcement hooks
   templates/                       human-readable copies of the index/rule/navigation patterns
 ```
