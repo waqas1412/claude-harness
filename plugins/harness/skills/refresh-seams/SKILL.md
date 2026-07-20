@@ -3,6 +3,7 @@ name: refresh-seams
 description: Rebuild the cross-repo integration map for a multi-repo workspace. Runs evidence-based seam discovery (parallel hunter agents scoped by the workspace cluster config), reconciles and verifies every edge by file:line proof, then regenerates .claude/meta/seams.json, each connected repo's "## Cross-repo seams" section, and .claude/meta/integration-map.md with feature-flow playbooks. Cluster names, hunter set, and repo lists come from .claude/harness/seams/clusters.json (written by workspace-init), never hardcoded. Use after changes that add or remove cross-repo dependencies, or when the seam map is stale. Scope-limit with an argument.
 argument-hint: "[optional scope, e.g. one cluster name or a subset of repo/edge kinds]"
 allowed-tools: Read, Grep, Glob, Agent, Workflow
+disable-model-invocation: true
 ---
 
 # /refresh-seams: rebuild the workspace integration map
@@ -16,6 +17,7 @@ On first run, scaffold the pipeline assets from this skill's bundled `assets/` i
 - `assets/discover.workflow.js` to `.claude/harness/seams/discover.workflow.js`
 - `assets/build.py` to `.claude/harness/seams/build.py`
 - `assets/cartographer-prompt.md` to `.claude/harness/seams/cartographer-prompt.md`
+- `assets/verify-map.sh` to `.claude/harness/seams/verify-map.sh`
 A workspace-local copy ALWAYS wins over the bundled one: if `.claude/harness/seams/discover.workflow.js` already exists, use it as-is. This lets a workspace tune hunters, kinds, or budgets without editing the shared plugin. (Directory-scoped skill precedence separately lets a workspace ship its own `refresh-seams` skill that shadows this one; see MANIFEST.)
 
 ## Scope argument
@@ -37,8 +39,7 @@ Invoke `SEAMS_DATE=<date> SEAMS_ROOT=<root> python3 .claude/harness/seams/build.
 - verifies each edge: an edge survives only if a cited file exists AND (the `proof` literal matches somewhere in either side's file text, OR both sides' files exist); tags `verify: verified` or `files-ok`; drops the rest,
 - tags `cluster` via the kind-to-cluster map derived from clusters.json (a kind whose emitting hunter belongs to one cluster maps there; cross-cluster kinds map to `bridge`),
 - dedupes on `(from,to,kind,detail-prefix)`, sorts by `KIND_ORDER` then from/to,
-- writes `.claude/meta/seams.json` (schema below), `.claude/harness/seams/adjacency.txt` (per-repo OUT/IN listing), and rewrites each connected repo's `## Cross-repo seams` section between `<!-- seams:start -->` / `<!-- seams:end -->` markers (replace if present, append if not, so hand edits outside the markers survive),
-- prints an em-dash guard warning if any rules file contains U+2014.
+- writes `.claude/meta/seams.json` (schema below), `.claude/harness/seams/adjacency.txt` (per-repo OUT/IN listing), and rewrites each connected repo's `## Cross-repo seams` section between `<!-- seams:start -->` / `<!-- seams:end -->` markers (replace if present, append if not, so hand edits outside the markers survive).
 
 `seams.json` fields: `generated`, `method`, `scope`, `stats{edges,verified,files_ok,repos,externals,by_cluster}`, `nodes{repos[],externals[],all_repos[]}` (`all_repos` is the full cluster roster from `clusters.json`, independent of whether a repo has any kept edge; the cartographer's zero-edge-repos coverage note is `all_repos` minus `repos`), `kinds{}`, `edges[]`. Per edge: `from, fromRef, to, toRef, kind, direction, detail, proof, confidence`, plus build-added `verify` and `cluster`.
 
@@ -54,8 +55,8 @@ Hand `.claude/harness/seams/cartographer-prompt.md` (with real counts substitute
 - a coverage-notes section listing zero-edge repos and thin-confidence edges.
 Hard rules for the agent: no em-dash character, every cited path must come from seams.json, stay within the line budget stated in the prompt.
 
-## Phase 5: verify gate (haiku sweep + main loop)
-Delegate a `haiku` agent to: sweep `.claude/meta/*` plus `.claude/rules/*.md` plus root `CLAUDE.md` for U+2014; `test -e` every non-mermaid backtick path in the new integration-map.md; check marker balance (`seams:start` count equals `seams:end` count) in every rules file. The main loop resolves any failure before reporting.
+## Phase 5: verify gate (bundled script + main loop)
+Run the deterministic self-verify AFTER Phase 4 has drawn the map (not folded into the Phase 3 `build.py` run, which executes before `integration-map.md` exists): `sh .claude/harness/seams/verify-map.sh` from the workspace root. It sweeps `.claude/meta/*`, `.claude/rules/*.md`, and root `CLAUDE.md` for U+2014, `test -e`s every backtick path in the new `integration-map.md` (mermaid-fenced blocks and any `:line` suffix stripped), and checks `seams:start`/`seams:end` marker balance in every rules file, then prints one `RESULT` line and exits non-zero on any failure. Run it as a delegated `haiku` helper or from the main loop; the main loop resolves any failure before reporting. The one judgment item left to the main loop is confirming the thin-confidence edges the cartographer flagged are genuinely low-confidence and worth surfacing, not silent drops.
 
 ## Report
 Edge counts (verified vs files-ok), repo and external counts, per-cluster counts, coverage gaps (zero-edge repos), and the list of files touched.
@@ -64,6 +65,8 @@ Edge counts (verified vs files-ok), repo and external counts, per-cluster counts
 Do not invent edges, paths, or proofs; every edge in the output traces to a grep-matched source line. Do not deep-recurse vendored or huge repos. Right-size the hunter panel to the workspace. Ask the user only if the cluster config is missing or malformed (point them at `workspace-init`); otherwise infer and proceed, recording any low-confidence edges as `confidence: low` rather than dropping them silently.
 
 ## Gotchas
+- Auto-invocation is disabled by design; this skill overwrites committed navigation artifacts, so
+  run it via the slash command on purpose.
 - A hunter recursing into a vendored/base repo's full source instead of finding only the consumer-side reference, which floods the journal with noise edges.
 - An edge whose `proof` string is stale or paraphrased so it no longer matches the cited file's text; build.py drops it rather than half-verifying it, so a hunter must quote the literal line.
 - A `## Cross-repo seams` block missing its `<!-- seams:end -->` marker, which breaks Phase 3's replace-vs-append logic for that repo and Phase 5's marker-balance check.

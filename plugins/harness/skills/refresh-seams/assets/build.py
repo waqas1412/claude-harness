@@ -229,7 +229,6 @@ def main():
 
     rewrite_rules(kept, repos)
 
-    emdash_guard()
     print("edges={} verified={} files_ok={} repos={} externals={}".format(
         doc["stats"]["edges"], doc["stats"]["verified"], doc["stats"]["files_ok"],
         doc["stats"]["repos"], doc["stats"]["externals"]))
@@ -275,12 +274,6 @@ def rewrite_rules(edges, repos):
         else:
             new = text.rstrip("\n") + "\n\n" + block
         f.write_text(new)
-
-
-def emdash_guard():
-    for f in list(RULES_DIR.glob("*.md")) + list(META_DIR.glob("*.md")):
-        if "\u2014" in f.read_text():
-            print("WARN em-dash (U+2014) present in {}".format(f))
 
 
 if __name__ == "__main__":
