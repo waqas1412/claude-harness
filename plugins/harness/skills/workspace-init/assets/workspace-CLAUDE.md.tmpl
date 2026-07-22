@@ -1,6 +1,6 @@
 # Workspace Index
 
-> Read this first; do not blind-recurse the repos. Every repo has a path-scoped deep index at `.claude/rules/<repo>.md` that auto-loads when you touch it; open the match before editing. Section 1 is the catalog; Sections 2-3 give deeper routing for the daily-driver repos.
+> Read this first; do not blind-recurse the repos. Every repo has a deep index at `.claude/repo-index/<repo>.md`. These are NOT auto-loaded: Read the one matching your target repo before editing it. Section 1 is the catalog; Sections 2-3 give deeper routing for the daily-driver repos.
 
 ## 1. System Topology
 
@@ -10,7 +10,7 @@
 {{/each}}
 
 ### Full repo catalog
-> One line per repo; open `.claude/rules/<repo>.md` for its deep index. Vendored forks are black-box: do not deep-recurse them.
+> One line per repo; open `.claude/repo-index/<repo>.md` for its deep index. Vendored forks are black-box: do not deep-recurse them.
 
 {{#each categories}}
 **{{name}}**
@@ -22,7 +22,7 @@
 > Not indexed (empty or non-repo dirs): {{notIndexed}}.
 
 ## 2. Structural Routing Triggers
-*Deep routing for the core daily-driver repos. For any other repo, open its `.claude/rules/<repo>.md`.*
+*Deep routing for the core daily-driver repos. For any other repo, open its `.claude/repo-index/<repo>.md`.*
 {{#each routingTriggers}}
 - {{concern}}: {{path}}.
 {{/each}}
@@ -37,8 +37,8 @@
 - **Non-code zones (docs/data, not source):** {{nonCodeZones}}; read only when the task explicitly references them.
 
 ## 4. Deep Index Pointers
-- Path-scoped deep indexes live in `.claude/rules/` (one `<repo>.md` per repo) and auto-load via `targets` globs when you touch a repo. Open the match before editing. Section 1 is the full catalog.
-- Core: {{coreDeepIndexes}}. Every other repo: `.claude/rules/<repo>.md`.
+- Deep indexes live in `.claude/repo-index/` (one `<repo>.md` per repo). Read on demand, not auto-loaded: Read the single file matching the repo you touch. The `targets` glob documents scope and feeds tooling; it does not drive loading. Section 1 is the full catalog.
+- Core: {{coreDeepIndexes}}. Every other repo: `.claude/repo-index/<repo>.md`.
 - **Tracker prefixes by domain:**
 {{#each trackerPrefixes}}
   - `{{prefix}}` {{domain}}
@@ -46,6 +46,6 @@
 
 ## 5. Deeper navigation (on-demand)
 - Read `.claude/meta/navigation.md` for the doc map, the agent-instruction hierarchy, and the agent/workflow/skill guide.
-- Read `.claude/meta/integration-map.md` for the cross-repo seam graph and feature-flow playbooks (built by `/refresh-seams`); machine-readable edges in `.claude/meta/seams.json`. Each connected repo's `.claude/rules/<repo>.md` also carries an auto-generated `## Cross-repo seams` section.
+- Read `.claude/meta/integration-map.md` for the cross-repo seam graph and feature-flow playbooks (built by `/refresh-seams`); machine-readable edges in `.claude/meta/seams.json`. Each connected repo's `.claude/repo-index/<repo>.md` also carries an auto-generated `## Cross-repo seams` section.
 - Read `.claude/harness/seams/clusters.json` for the cluster and hunter parameters `/refresh-seams` consumes.
 - Agent and skill descriptions are injected each turn; pick by them.

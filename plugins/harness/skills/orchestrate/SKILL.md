@@ -18,16 +18,42 @@ window, so only widen the roster when the added lens would plausibly change the 
 
 ## Dispatch contract
 
-Every agent dispatch carries four things: (1) Objective, the one question this lens answers for this
+Every agent dispatch carries five things: (1) Objective, the one question this lens answers for this
 task; (2) Scope, the exact files or diff hunks in view plus the pinned baseline (plan, ticket, spec,
-or design source); (3) Return format, the condensed digest already defined in the working agreements
-(roughly 1-2k tokens, file:line pointers, a verdict, never raw logs or full-file dumps); (4)
-Boundaries, what to ignore and which sibling owns it. Underspecified dispatches produce duplicated or
-drifting findings.
+or design source); (3) Brief, the absolute path to the brief packet below; (4) Return format, the
+condensed digest already defined in the working agreements (roughly 1-2k tokens, file:line pointers,
+a verdict, never raw logs or full-file dumps); (5) Boundaries, what to ignore and which sibling owns
+it. Underspecified dispatches produce duplicated or drifting findings.
+
+## The brief packet (write once, before Gate 1)
+
+Every agent starts cold and pays a full context entry cost, so any exploration it repeats is bought
+twice. The main loop explores ONCE and writes the result to a brief in the scratchpad directory, e.g.
+`<scratchpad>/BRIEF-<ticket>.md`. Every dispatch then names that absolute path, and the agents read
+it instead of re-crawling the repo.
+
+Facts only, never conclusions:
+
+```markdown
+# BRIEF: <ticket / change>
+## Objective          one paragraph: what changes and why
+## Baseline           ticket/spec/KB paths + the design node, pinned
+## Files in play      path:line pointers, already located
+## Diff               the actual diff (VERIFY gate only)
+## Repo context       the ONE .claude/repo-index/<repo>.md that applies, plus AGENTS.md path
+## Decisions settled  resolved choices, so nobody relitigates them
+## Out of scope       explicitly excluded, with the owner
+```
+
+Withhold your own analysis. A reviewer handed your conclusions inherits your blind spots, and that
+independence is the whole reason the lens exists. Handing over the diff and the file locations costs
+nothing, because locating files was never where the review value came from. Refresh the brief with
+the diff before Gate 2; do not write a second one.
 
 ## Gate 1: PLAN (before writing code)
 
-Dispatch in parallel the relevant subset, then synthesize their outputs into one plan:
+Write the brief packet first, then dispatch in parallel the relevant subset, each dispatch naming the
+brief path, then synthesize their outputs into one plan:
 - `system-architect` placement, boundaries, blast radius, fit to repo patterns.
 - `system-designer` exact signatures, shapes, and the edge-case matrix (once placement is set).
 - `principles-engineer` reuse vs new code, right-sizing, guard against over-engineering.
@@ -59,7 +85,8 @@ commit. Never run mutating agents in parallel in the same working dir; one execu
 The executor runs the authoritative lint/build/change-related tests first for fast feedback and
 reports the commands and results; `developer-reviewer` then re-runs those same commands itself in its
 own context and pastes the raw output (exit codes, failing test names). Go/no-go gates on that
-independent run, never on the executor's self-reported green. Dispatch in parallel:
+independent run, never on the executor's self-reported green. Refresh the brief with the diff, then
+dispatch in parallel, each dispatch naming the brief path:
 - `developer-reviewer` correctness, invariants, boundary/nil/ordering, test coverage red to green,
   AGENTS.md compliance. Adversarial: it tries to break the diff. Diff the test files: a deleted
   test, a newly added skip, or a loosened assertion used to reach green is a no-go finding, not a

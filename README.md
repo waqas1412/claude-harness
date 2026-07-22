@@ -57,7 +57,7 @@ It scans the repo and writes a navigation harness tuned to that codebase, for ex
 ```text
 your-repo/
   CLAUDE.md                     root router (topology, routing triggers, grep deny rules)
-  .claude/rules/<area>.md       one path-scoped deep index per area (loads only on match)
+  .claude/repo-index/<area>.md       one deep index per area (read on demand, not auto-loaded)
   .claude/meta/navigation.md    on-demand reference layer (doc map, instruction hierarchy)
   .claude/harness/profile.md    project profile (repo slug, tracker prefix, lint/test/build)
   .claude/memory/               project memory scaffold (one starter fact + index)
@@ -71,7 +71,7 @@ From then on, `/pr`, `/ticket`, and the advisor agents read that generated profi
 - **Advisor agents** (`plugins/harness/agents/`): 13 read-only PLAN/VERIFY advisors (system-architect, system-designer, developer-reviewer, data-flow-timing-auditor, spec-fidelity-auditor, design-parity-auditor, performance-optimizer, principles-engineer, design-principles-advisor, docs-researcher, senior-software-engineer, plus pr-author and jira-ticket-author). They defer to the repo's own generated index for stack and conventions, so they work in any codebase.
 - **Skills** (`plugins/harness/skills/`), 7 in total:
   - `/harness-init` scans the current repo and generates its navigation harness (see [The self-adapting part](#the-self-adapting-part)).
-  - `/workspace-init` scans a multi-repo workspace root and generates the workspace router (catalog CLAUDE.md, per-repo `.claude/rules/<repo>.md` deep indexes, navigation, and a `.claude/harness/seams/` cluster config). Complements `/harness-init`, does not replace it.
+  - `/workspace-init` scans a multi-repo workspace root and generates the workspace router (catalog CLAUDE.md, per-repo `.claude/repo-index/<repo>.md` deep indexes, navigation, and a `.claude/harness/seams/` cluster config). Complements `/harness-init`, does not replace it.
   - `/refresh-seams` rebuilds the cross-repo integration map: evidence-based seam discovery by parallel hunter agents, every edge verified by `file:line` proof, emitting `.claude/meta/seams.json`, per-repo seam sections, and `.claude/meta/integration-map.md`.
   - `/orchestrate` runs a change through the multi-agent PLAN and VERIFY loop in one command.
   - `/harness-distill` distills durable learnings from recent sessions and code-review corrections into proposed memory facts, CLAUDE.md rules, or skill Gotchas, verified by a skeptic and gated on your approval.
@@ -85,7 +85,7 @@ From then on, `/pr`, `/ticket`, and the advisor agents read that generated profi
 Run `/harness-init` in any repository. It scans the repo and writes, following a documented pattern:
 
 - `CLAUDE.md` a root router index (System Topology, Routing Triggers, Search/Grep deny rules, Deep Index Pointers).
-- `.claude/rules/<area>.md` one path-scoped deep index per area, with `targets` globs so each loads only when you touch that area.
+- `.claude/repo-index/<area>.md` one deep index per area, read on demand (not auto-loaded); `targets` globs document each area's scope and feed tooling, they do not drive loading.
 - `.claude/meta/navigation.md` an on-demand reference layer (doc map, instruction hierarchy, agent guide).
 - `.claude/harness/profile.md` the project profile (repo slug, tracker prefix, default branch, and the resolved lint/test/build commands) that `/pr` and `/ticket` read.
 - `.claude/memory/` a project memory scaffold (one starter fact plus an index).
@@ -169,7 +169,7 @@ The portable layer (agents, skills, hooks) can be **symlinked** into `~/.claude`
 
 Once linked, editing an agent, skill, or hook while you work IS editing the repo file: just `git commit` it, and a `git pull` updates your live setup instantly. `./install.sh --check` reports whether each dir is linked or copied and exercises the hooks.
 
-What stays **local and is never synced here**: your memory store, your personal `settings.json` (model, theme, plugins), and any project index a repo generates with `/harness-init`. Project-specific knowledge belongs in that project's own `CLAUDE.md` + `.claude/rules` (which the generic agents read); this repo holds only the portable, stack-neutral layer.
+What stays **local and is never synced here**: your memory store, your personal `settings.json` (model, theme, plugins), and any project index a repo generates with `/harness-init`. Project-specific knowledge belongs in that project's own `CLAUDE.md` + `.claude/repo-index` (which the generic agents read); this repo holds only the portable, stack-neutral layer.
 
 ## Layout
 

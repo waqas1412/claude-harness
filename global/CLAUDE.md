@@ -107,7 +107,8 @@ per-project profile that `/harness-init` generates at `.claude/harness/profile.m
 
 ## How this repo is mapped
 
-- If this repo has a root `CLAUDE.md` index and `.claude/rules/*.md` deep indexes, read the index
-  first and let the path-scoped rules auto-load; do not blind-recurse the tree.
+- If this repo has a root `CLAUDE.md` index and `.claude/repo-index/*.md` deep indexes, read the index
+  first, then Read only the matching `.claude/repo-index/*.md` for what you touch; do not blind-recurse
+  the tree or bulk-read the index dir.
 - If it has none, run `/harness-init` once to generate them from a scan of the repo.
 <!-- harness:end -->

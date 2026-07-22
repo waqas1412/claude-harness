@@ -4,8 +4,8 @@
 > heavier reference layer: doc map, instruction hierarchy, and the agent/skill guide.
 
 ## Documentation Map
-- Per-area doc catalogs live in each `.claude/rules/<area>.md` under "Documentation Map" (auto-loads
-  when you touch that area).
+- Per-area doc catalogs live in each `.claude/repo-index/<area>.md` under "Documentation Map" (read on demand when you
+  work in that area).
 - Authoritative rules: {{AUTHORITATIVE_DOCS}} (e.g. `AGENTS.md`, per-area `CLAUDE.md`).
 - Knowledge bases / specs: {{KB_ENTRY_POINTS}} (start here; do not bulk-read raw dumps).
 - Doc-search deny: {{DOC_DENY_ZONES}} (generated reports, snapshots, vendored docs).
@@ -13,7 +13,7 @@
 ## Agent Instruction Hierarchy
 *The guide files that govern Claude, broad to narrow. All apply cumulatively; narrower scope wins on conflict.*
 - **Global (every project):** `~/.claude/CLAUDE.md` (portable working agreements) plus the memory index.
-- **Workspace root:** `CLAUDE.md` (router, auto-loaded) plus `.claude/rules/<area>.md` (path-scoped deep indexes).
+- **Workspace root:** `CLAUDE.md` (router, always loaded) plus `.claude/repo-index/<area>.md` (deep indexes, read on demand).
 - **Per-area hubs:** {{AREA_HUBS}} (e.g. `<area>/AGENTS.md` is primary for that area).
 - **Sub-scopes:** {{SUB_SCOPES}} (apply only when editing that subtree).
 

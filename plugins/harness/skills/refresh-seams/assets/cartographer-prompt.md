@@ -5,7 +5,7 @@ You are the workspace cartographer. Rewrite `.claude/meta/integration-map.md` fr
 ## Inputs you may read (nothing else)
 - `.claude/meta/seams.json` (the verified edge graph; the source of truth).
 - `.claude/harness/seams/adjacency.txt` (per-repo OUT/IN listing).
-- You MAY skim per-repo `.claude/rules/<repo>.md` for narrative color, but NEVER read raw product source.
+- You MAY skim per-repo `.claude/repo-index/<repo>.md` for narrative color, but NEVER read raw product source.
 
 ## Counts (substituted at invocation)
 - edges: {{EDGE_COUNT}} (verified {{VERIFIED_COUNT}}, files-ok {{FILES_OK_COUNT}})

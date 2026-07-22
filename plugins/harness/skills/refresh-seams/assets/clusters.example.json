@@ -7,7 +7,7 @@
   },
   "vendored": ["upstream-rtos-fork", "upstream-crypto-fork"],
   "excludes": ["node_modules", ".git", "dist", "build", "target", ".venv", "__pycache__", "cdk.out"],
-  "rulesFileConvention": ".claude/rules/<repo>.md",
+  "rulesFileConvention": ".claude/repo-index/<repo>.md",
   "kindClusters": {
     "http-api": "services",
     "schema-contract": "services",

@@ -235,7 +235,7 @@ def main():
 
 
 def rules_file_for(repo):
-    # rulesFileConvention like ".claude/rules/<repo>.md"; match case-insensitively.
+    # rulesFileConvention like ".claude/repo-index/<repo>.md"; match case-insensitively.
     if not RULES_DIR.exists():
         return None
     want = repo.lower() + ".md"

@@ -1,6 +1,6 @@
 ---
 name: harness-init
-description: Scan the current repository and generate a tailored navigation harness (root CLAUDE.md index, path-scoped .claude/rules/*.md deep indexes, .claude/meta/navigation.md, and a .claude/harness/profile.md consumed by /pr and /ticket). Runs autonomously: infers stack, areas, verify commands, and conventions, then writes the files. Use to bootstrap or refresh a repo's harness, or when asked to "harness this project", set up CLAUDE.md, or index a codebase.
+description: Scan the current repository and generate a tailored navigation harness (root CLAUDE.md index, read-on-demand .claude/repo-index/*.md deep indexes, .claude/meta/navigation.md, and a .claude/harness/profile.md consumed by /pr and /ticket). Runs autonomously: infers stack, areas, verify commands, and conventions, then writes the files. Use to bootstrap or refresh a repo's harness, or when asked to "harness this project", set up CLAUDE.md, or index a codebase.
 argument-hint: "[--refresh] [--emit codex] [optional: area/path to focus]"
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit
 disable-model-invocation: true
@@ -19,7 +19,7 @@ parallel, then synthesize. The main loop owns the file writes.
 ## What you produce
 
 1. `CLAUDE.md` (repo root) plus the root router index.
-2. `.claude/rules/<area>.md` one path-scoped deep index per area.
+2. `.claude/repo-index/<area>.md` one deep index per area (read on demand, not auto-loaded).
 3. `.claude/meta/navigation.md` the on-demand reference layer (includes an orchestration map).
 4. `.claude/harness/profile.md` the project profile (repo slug, tracker, verify commands, stack flags).
 5. `.claude/memory/` a project memory scaffold (one starter fact plus a `MEMORY.md` index).
@@ -104,8 +104,8 @@ advice. Keep it scannable and under ~200 lines as a secondary ceiling.
 ```markdown
 # {{Project}} Index
 
-> Directional triggers for navigation. Read this first; do not blind-recurse the repo. Deep,
-> path-scoped detail lives in .claude/rules/*.md and auto-loads when you touch the matching paths.
+> Directional triggers for navigation. Read this first; do not blind-recurse the repo. Deep
+> per-area detail lives in .claude/repo-index/*.md; Read the one matching the area you touch (not auto-loaded).
 
 ## 1. System Topology
 - **{{Area}} `{{path}}/`:** {{stack}} ({{one-line purpose}}).
@@ -120,7 +120,7 @@ advice. Keep it scannable and under ~200 lines as a secondary ceiling.
 - **Non-code zones:** {{doc/spec zones}}.
 
 ## 4. Deep Index Pointers
-- Editing `{{path}}/**`: load `.claude/rules/{{area-slug}}.md` ({{one-line hint}}).
+- Editing `{{path}}/**`: read `.claude/repo-index/{{area-slug}}.md` ({{one-line hint}}).
 
 ## 5. Deeper navigation (on-demand)
 - `.claude/meta/navigation.md` for the doc map, instruction hierarchy, and agent/skill guide.
@@ -132,8 +132,8 @@ block. If it has no markers, back it up first.
 
 ## Phase 4: Write one deep index per area
 
-For each area, write `.claude/rules/<area-slug>.md` with path-scoped frontmatter so it auto-loads only
-when that area is touched:
+For each area, write `.claude/repo-index/<area-slug>.md` with targets frontmatter documenting its
+scope (read on demand, not auto-loaded):
 
 ```markdown
 ---
@@ -198,13 +198,13 @@ not scatter state files into the repo root. Record a commit-vs-gitignore decisio
 Prove the no-invented-paths contract mechanically before reporting. Run the bundled deterministic
 core, then apply the judgment-bearing checks yourself:
 - From the repo root, run this skill's `assets/verify-generated.sh` over the generated files, for
-  example `sh assets/verify-generated.sh CLAUDE.md .claude/rules/*.md`. It test-e's every
+  example `sh assets/verify-generated.sh CLAUDE.md .claude/repo-index/*.md`. It test-e's every
   backtick-quoted path, sweeps for the em-dash U+2014, and checks per-file harness-marker balance,
   printing one `RESULT ... verified=N missing=N emdash=N markers_unbalanced=N` line. Remove or
   correct anything it flags, then re-run until it prints `RESULT pass`.
-- For each rules file, confirm its `targets:` glob matches at least one real file; widen or drop it if not.
-- For each rules file, confirm a `targets:` (or `paths:`) field is present and non-empty; if absent or
-  empty, add a scoped glob before writing, never ship an unscoped, always-loaded rule.
+- For each deep index, confirm its `targets:` glob matches at least one real file; widen or drop it if not.
+- For each deep index, confirm a `targets:` (or `paths:`) field is present and non-empty; it documents
+  scope and feeds tooling (refresh-seams), so an accurate glob keeps resolution correct.
 - Carry the script's verified-vs-dropped counts into the Phase 8 report.
 
 ## Phase 8: Report
@@ -214,7 +214,7 @@ the tracker/prefix inference, the self-verify verified-vs-dropped path counts, a
 ASSUMPTION the user should confirm. Suggest, but do not auto-apply, project-scoped permission allow-rules
 for the verify commands (those belong in the project's `.claude/settings.json`, not user-global).
 
-Close with a maintenance note: the generated CLAUDE.md and `.claude/rules/*.md` are living documents,
+Close with a maintenance note: the generated CLAUDE.md and `.claude/repo-index/*.md` are living documents,
 not a one-shot deliverable, to be pruned like code. If Claude keeps ignoring a rule, the file is likely
 too long and the rule is getting lost, so prune it, or, if it is a deterministic mechanical rule,
 convert it to a PreToolUse hook. Point the user to re-run `/harness-init --refresh` after significant
@@ -242,7 +242,7 @@ Emit `AGENTS.md` only: no per-harness packaging, MCP inventories, or transpile p
   `test -e` sweep is required, not optional, because this is the single most common failure.
 - Overwriting a hand-maintained root `CLAUDE.md` or rule file that has no harness markers instead of
   backing it up first; check for `<!-- harness:start -->` before writing, never clobber unmarked prose.
-- Shipping a `.claude/rules/*.md` with an empty or missing `targets`/`paths` field, so it loads
-  unscoped at every session start like CLAUDE.md; always widen or drop the glob before writing.
+- Shipping a `.claude/repo-index/*.md` with an empty or missing `targets`/`paths` field, so tooling
+  (refresh-seams) and readers cannot resolve its scope; always set an accurate glob before writing.
 - Treating an area's own `AGENTS.md` as optional context instead of authoritative, so the generated
   deep index restates or contradicts it instead of pointing to it.

@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # Deterministic Phase 5 self-verify for /refresh-seams, run AFTER Phase 4 draws the map.
-# It (1) sweeps .claude/meta/*, .claude/rules/*.md and the root CLAUDE.md for U+2014, (2) test -e
+# It (1) sweeps .claude/meta/*, .claude/repo-index/*.md and the root CLAUDE.md for U+2014, (2) test -e
 # every backtick path in .claude/meta/integration-map.md after stripping mermaid-fenced blocks and
 # any :line suffix, and (3) checks that seams:start and seams:end markers balance in every rules
 # file. It prints one machine-readable RESULT line and exits non-zero on any failure.
@@ -25,7 +25,7 @@ unbalanced=0
 missing_list=""
 
 # (1) em-dash sweep over the generated meta files, the rules files, and the root index.
-for f in .claude/meta/* .claude/rules/*.md CLAUDE.md; do
+for f in .claude/meta/* .claude/repo-index/*.md CLAUDE.md; do
   [ -f "$f" ] || continue
   if grep -q "$EM" "$f"; then
     emdash=$((emdash + 1))
@@ -34,7 +34,7 @@ for f in .claude/meta/* .claude/rules/*.md CLAUDE.md; do
 done
 
 # (3) seams marker balance in every rules file.
-for f in .claude/rules/*.md; do
+for f in .claude/repo-index/*.md; do
   [ -f "$f" ] || continue
   s=$(grep -c '<!-- seams:start -->' "$f")
   e=$(grep -c '<!-- seams:end -->' "$f")
