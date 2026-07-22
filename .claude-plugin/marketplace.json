@@ -10,7 +10,7 @@
       "name": "harness",
       "source": "./plugins/harness",
       "description": "Read-only advisor agents (architect, designer, reviewer, perf, principles, docs), profile-driven /pr and /ticket skills, enforcement hooks, and /harness-init.",
-      "version": "0.4.1",
+      "version": "0.5.0",
       "category": "productivity",
       "tags": [
         "claude-code",
