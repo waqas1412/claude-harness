@@ -74,15 +74,24 @@ for d in "$SKILLS"/*/; do
 done
 
 echo "== hooks.json references resolve =="
-for s in $(jq -r '.hooks.PreToolUse[].hooks[].command' "$HOOKS/hooks.json" | grep -oE 'block-[a-z-]+\.sh' | sort -u); do
+for s in $(jq -r '((.hooks.PreToolUse // []) + (.hooks.PostToolUse // [])) | .[].hooks[].command' "$HOOKS/hooks.json" | grep -oE '(block-[a-z-]+\.sh|filter-verbose-output\.py)' | sort -u); do
   [ -f "$HOOKS/$s" ] && ok "hook $s present" || err "hooks.json references missing $s"
 done
 
 echo "== hooks tested =="
-for f in "$HOOKS"/block-*.sh; do
+for f in "$HOOKS"/block-*.sh "$HOOKS"/filter-verbose-output.py; do
   b=$(basename "$f")
   grep -q "$b" "$ROOT/tests/run-hook-tests.sh" && ok "hook $b has behavioral test" || err "hook $b has no behavioral test"
 done
+
+echo "== python lint =="
+if command -v python3 >/dev/null 2>&1; then
+  for p in plugins/harness/hooks/filter-verbose-output.py; do
+    [ -f "$ROOT/$p" ] && { python3 -m py_compile "$ROOT/$p" 2>/dev/null && ok "py_compile $p" || err "python syntax error $p"; }
+  done
+else
+  warn "python3 absent: skipped python hook syntax check"
+fi
 
 echo "== shell lint =="
 BASH_FILES="install.sh uninstall.sh scripts/validate.sh scripts/bump-version.sh tests/run-hook-tests.sh"

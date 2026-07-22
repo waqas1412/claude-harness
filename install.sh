@@ -142,7 +142,7 @@ merge_settings() {
     deepmerge(.[0]; .[1])
   ' "$existing" "$overlay" > "$tmp"
 
-  # Wire the three PreToolUse hooks with resolved absolute paths; idempotent (drop ours, re-add).
+  # Wire the PreToolUse guards with resolved absolute paths; idempotent (drop ours, re-add).
   local h="$CLAUDE_HOME/hooks"
   jq --arg co "sh \"$h/block-coauthor.sh\"" \
      --arg pr "sh \"$h/block-pr-reviewer.sh\"" \
@@ -156,6 +156,17 @@ merge_settings() {
     | .hooks.PreToolUse += [
         { "matcher": "Bash", "hooks": [ {"type":"command","command":$co}, {"type":"command","command":$pr}, {"type":"command","command":$fp}, {"type":"command","command":$md} ] },
         { "matcher": "Write|Edit", "hooks": [ {"type":"command","command":$md} ] }
+      ]
+  ' "$tmp" > "$tmp.h" && mv "$tmp.h" "$tmp"
+
+  # Wire the PostToolUse output filter with a resolved absolute path; idempotent (drop ours, re-add).
+  jq --arg fv "python3 \"$h/filter-verbose-output.py\"" '
+    .hooks //= {} | .hooks.PostToolUse //= []
+    | .hooks.PostToolUse |= ( map(
+        .hooks |= ( (. // []) | map(select((.command // "") | test("/hooks/filter-verbose-output") | not)) )
+      ) | map(select((.hooks // []) | length > 0)) )
+    | .hooks.PostToolUse += [
+        { "matcher": "Bash", "hooks": [ {"type":"command","command":$fv} ] }
       ]
   ' "$tmp" > "$tmp.h" && mv "$tmp.h" "$tmp"
 
@@ -200,12 +211,12 @@ install_capabilities() {
     done
 
     head "Hooks"
-    for f in "$SRC"/plugins/harness/hooks/block-*.sh; do
+    for f in "$SRC"/plugins/harness/hooks/block-*.sh "$SRC"/plugins/harness/hooks/filter-verbose-output.py; do
       [ -e "$f" ] || continue
       copy_file "$f" "$CLAUDE_HOME/hooks/$(basename "$f")"
       chmod +x "$CLAUDE_HOME/hooks/$(basename "$f")"
     done
-    note "4 enforcement hooks (coauthor, pr-reviewer, force-push, md-emdash)"
+    note "5 hooks: 4 PreToolUse guards (coauthor, pr-reviewer, force-push, md-emdash) + 1 PostToolUse output filter"
   fi
 
   if [ "$WITH_MEMORY" = 1 ] && [ "$WITH_GLOBAL" = 1 ]; then
@@ -239,6 +250,11 @@ do_check() {
         note "NOT WIRED: $s"; ok=0
       fi
     done
+    if jq -e '.. | .command? // empty | select(test("filter-verbose-output"))' "$CLAUDE_HOME/settings.json" >/dev/null 2>&1; then
+      [ -f "$CLAUDE_HOME/hooks/filter-verbose-output.py" ] && note "hook wired + present: filter-verbose-output" || { note "WIRED BUT MISSING: hooks/filter-verbose-output.py"; ok=0; }
+    else
+      note "NOT WIRED: filter-verbose-output"; ok=0
+    fi
   else
     note "MISSING settings.json"; ok=0
   fi

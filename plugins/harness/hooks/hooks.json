@@ -16,6 +16,14 @@
           { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/block-md-emdash.sh\"" }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/filter-verbose-output.py\"" }
+        ]
+      }
     ]
   }
 }

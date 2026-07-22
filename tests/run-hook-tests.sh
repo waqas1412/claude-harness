@@ -56,6 +56,30 @@ run "emdash: Bash cat em-dash file passes" block-md-emdash.sh 0 "$(printf '{"too
 run "emdash: Bash non-authoring passes" block-md-emdash.sh 0 "$(printf '{"tool_name":"Bash","tool_input":{"command":"git status %s"}}' "$EM")"
 run "emdash: Bash clean commit passes" block-md-emdash.sh 0 '{"tool_name":"Bash","tool_input":{"command":"git commit -m clean-message"}}'
 
+# filter-verbose-output (PostToolUse: exits 0 always; assert on stdout, not exit code)
+if command -v python3 >/dev/null 2>&1; then
+  FVO="$HOOKS/filter-verbose-output.py"
+  runf() { # desc  mode(hasfail|empty)  event_json
+    local desc="$1" mode="$2" json="$3" out pass=0
+    out="$(printf '%s' "$json" | python3 "$FVO" 2>/dev/null)"
+    case "$mode" in
+      empty)   [ -z "$out" ] && pass=1 ;;
+      hasfail) printf '%s' "$out" | grep -q '"updatedToolOutput"' \
+                 && printf '%s' "$out" | grep -q 'FAILED' && pass=1 ;;
+    esac
+    if [ "$pass" = 1 ]; then PASS=$((PASS + 1)); printf 'PASS  %-46s\n' "$desc"
+    else FAIL=$((FAIL + 1)); printf 'FAIL  %-46s (stdout mismatch)\n' "$desc"; fi
+  }
+  FVO_BIG="$(python3 -c 'import json;print(json.dumps({"tool_name":"Bash","tool_input":{"command":"yarn test:playwright"},"tool_response":{"stdout":"\n".join("ok %d passed"%i for i in range(700))+"\nx boom FAILED\nTests: 1 failed, 699 passed, 700 total","stderr":"","interrupted":False,"isImage":False,"noOutputExpected":False}}))')"
+  FVO_CAT="$(python3 -c 'import json;print(json.dumps({"tool_name":"Bash","tool_input":{"command":"cat data.json"},"tool_response":{"stdout":"x"*20000,"stderr":"","interrupted":False,"isImage":False,"noOutputExpected":False}}))')"
+  runf "filter: test output filtered + failure surfaced" hasfail "$FVO_BIG"
+  runf "filter: non-test big output passes through"      empty   "$FVO_CAT"
+  runf "filter: small test output passes through"        empty   '{"tool_name":"Bash","tool_input":{"command":"yarn test:playwright"},"tool_response":{"stdout":"3 passed\nok","stderr":"","interrupted":false,"isImage":false,"noOutputExpected":false}}'
+  runf "filter: malformed input passes through"          empty   'not json{'
+else
+  echo "SKIP  filter-verbose-output tests (python3 absent)"
+fi
+
 # verify-generated.sh (shared Phase 7 self-verify core: pass on a real path, fail on an invented one)
 vg() { # desc want file
   local desc="$1" want="$2" file="$3" got

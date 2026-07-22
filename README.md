@@ -76,7 +76,7 @@ From then on, `/pr`, `/ticket`, and the advisor agents read that generated profi
   - `/orchestrate` runs a change through the multi-agent PLAN and VERIFY loop in one command.
   - `/harness-distill` distills durable learnings from recent sessions and code-review corrections into proposed memory facts, CLAUDE.md rules, or skill Gotchas, verified by a skeptic and gated on your approval.
   - `/pr` and `/ticket` write to house templates, reading project tokens from a per-repo profile.
-- **Enforcement hooks** (`plugins/harness/hooks/`): 4 PreToolUse guards that mechanically block a Co-Authored-By trailer (`block-coauthor.sh`), a reviewer flag on `gh pr` and `requested_reviewers` via `gh api` (`block-pr-reviewer.sh`), a bare `git push --force` / `-f` (`block-force-push.sh`), and an em dash in authored markdown (`block-md-emdash.sh`). See [`SECURITY.md`](./SECURITY.md) for the threat model and known residual bypasses.
+- **Hooks** (`plugins/harness/hooks/`): 4 PreToolUse guards that mechanically block a Co-Authored-By trailer (`block-coauthor.sh`), a reviewer flag on `gh pr` and `requested_reviewers` via `gh api` (`block-pr-reviewer.sh`), a bare `git push --force` / `-f` (`block-force-push.sh`), and an em dash in authored markdown (`block-md-emdash.sh`); plus 1 PostToolUse output filter (`filter-verbose-output.py`, needs `python3`) that trims passing/verbose test and Playwright output while surfacing failures, errors, warnings, and the run summary first, so failures survive even a truncated preview and the full raw log stays on disk. It only touches recognized test runners over a size threshold and is fail-safe: any unrecognized command, small output, or anomaly passes through untouched. See [`SECURITY.md`](./SECURITY.md) for the threat model and known residual bypasses.
 - **Memory:** the installed `CLAUDE.md` carries a memory convention (one fact per file plus a `MEMORY.md` index), and the installer seeds a `~/.claude/memory/` store.
 - **Quality gates:** `scripts/validate.sh` and `tests/run-hook-tests.sh` run in CI on every push and PR, and `install.sh --check` re-verifies hook behavior and memory integrity on a live install.
 
@@ -133,7 +133,7 @@ This gives you the agents, skills, and hooks via the plugin system. Plugins cann
 | --- | --- | --- |
 | Advisor agents | yes | yes |
 | Skills (all 7) | yes | yes |
-| Enforcement hooks | yes (wired into settings.json) | yes (plugin hooks) |
+| Hooks | yes (wired into settings.json) | yes (plugin hooks) |
 | Working-agreements CLAUDE.md | yes | no (copy it yourself) |
 | Permission allow-rules and prefs | yes (merged) | no (add yourself) |
 | Memory store seed | yes | no |
