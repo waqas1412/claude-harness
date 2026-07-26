@@ -1,123 +1,107 @@
 ---
 name: orchestrate
-description: Run a substantial change through the standard multi-agent loop (PLAN gate, implement, VERIFY gate) using the read-only advisor agents in parallel, with a go/no-go before commit. Use for any non-trivial implementation, refactor, or review when you want the full advisor choreography instead of re-deciding it each turn. Not for trivial edits or pure Q&A.
-argument-hint: "[short description of the change]"
-allowed-tools: Read, Grep, Glob, Agent, Workflow
+description: Apply the review lenses yourself, in the solo main loop, with no subagent dispatch. Pick only the lenses the change actually touches, run each as a checklist against real code and real command output, and gate go/no-go on cited evidence. Use when asked to run, use, or review with "our lenses", or to plan or verify a non-trivial change. No executor split, no parallel advisors, no model pinning.
+argument-hint: "[short description of the change, or a PR number to review]"
+allowed-tools: Read, Grep, Glob, Bash
 ---
 
-# /orchestrate: the standard multi-agent loop
+# /orchestrate: run the lenses in one loop
 
-A recipe, not an engine. It names which read-only advisors fire at each gate and which run in
-parallel. The main loop is the brain: it plans, delegates, and gates. A single sequential executor
-agent (model: sonnet, one per repo) applies edits and runs git and the authoritative lint/build/test,
-returning condensed reports; the advisors only advise. Dispatch agents with the native Task tool,
-concurrently within a gate. Scale the roster to the task: a one-file fix needs two advisors (one
-PLAN, one VERIFY), a feature or multi-file change needs three to five relevant lenses per gate, a
-cross-cutting or architecture change needs the full panel. Each parallel advisor is a full context
-window, so only widen the roster when the added lens would plausibly change the go/no-go.
+The lenses are checklists, not agents. This skill names which ones apply to a given change, what each
+one asks, and what evidence closes it. You apply them yourself in this loop: you plan, you read, you
+edit, you run lint and build and tests, and you review your own diff before committing.
 
-## Dispatch contract
+## How this works: one loop, no dispatch
 
-Every agent dispatch carries five things: (1) Objective, the one question this lens answers for this
-task; (2) Scope, the exact files or diff hunks in view plus the pinned baseline (plan, ticket, spec,
-or design source); (3) Brief, the absolute path to the brief packet below; (4) Return format, the
-condensed digest already defined in the working agreements (roughly 1-2k tokens, file:line pointers,
-a verdict, never raw logs or full-file dumps); (5) Boundaries, what to ignore and which sibling owns
-it. Underspecified dispatches produce duplicated or drifting findings.
+The 13 files in `~/.claude/agents/*.md` are the lens CONTENT. When a checklist below is not enough
+detail for the change in front of you, Read the matching file and use its rubric. They are reference
+documents here, never dispatch targets. Do not spawn a subagent or author a workflow to run a lens
+unless the user asks for that in the moment.
 
-## The brief packet (write once, before Gate 1)
+## Pick the lenses, then say which you skipped
 
-Every agent starts cold and pays a full context entry cost, so any exploration it repeats is bought
-twice. The main loop explores ONCE and writes the result to a brief in the scratchpad directory, e.g.
-`<scratchpad>/BRIEF-<ticket>.md`. Every dispatch then names that absolute path, and the agents read
-it instead of re-crawling the repo.
+Right-size to the change:
 
-Facts only, never conclusions:
+- One-file fix: correctness and repo-fit only.
+- Feature or multi-file change: add the two or three lenses the change actually touches.
+- Cross-cutting, shared-seam, or architecture change: the full panel.
 
-```markdown
-# BRIEF: <ticket / change>
-## Objective          one paragraph: what changes and why
-## Baseline           ticket/spec/KB paths + the design node, pinned
-## Files in play      path:line pointers, already located
-## Diff               the actual diff (VERIFY gate only)
-## Repo context       the ONE .claude/repo-index/<repo>.md that applies, plus AGENTS.md path
-## Decisions settled  resolved choices, so nobody relitigates them
-## Out of scope       explicitly excluded, with the owner
-```
+Declare skips out loud ("no design parity: this diff has no UI"). A silent skip reads as a pass.
 
-Withhold your own analysis. A reviewer handed your conclusions inherits your blind spots, and that
-independence is the whole reason the lens exists. Handing over the diff and the file locations costs
-nothing, because locating files was never where the review value came from. Refresh the brief with
-the diff before Gate 2; do not write a second one.
+## Pin the baseline before judging
 
-## Gate 1: PLAN (before writing code)
+Name the thing the diff is answerable to: the ticket, the spec or KB path, the design node, or, when
+there is no external spec, the plan agreed in this conversation. Judging a diff against nothing is how
+gold plating and scope creep survive review.
 
-Write the brief packet first, then dispatch in parallel the relevant subset, each dispatch naming the
-brief path, then synthesize their outputs into one plan:
-- `system-architect` placement, boundaries, blast radius, fit to repo patterns.
-- `system-designer` exact signatures, shapes, and the edge-case matrix (once placement is set).
-- `principles-engineer` reuse vs new code, right-sizing, guard against over-engineering.
-- `design-principles-advisor` structural soundness (SOLID/GRASP/coupling) for larger designs.
-- `docs-researcher` version-correct library usage when the change touches an external dependency.
-- `spec-fidelity-auditor` pins the baseline (ticket/spec/KB, or the agreed plan when none exists),
-  lints the acceptance criteria, and seeds the traceability matrix.
-- `design-parity-auditor` pins the design source and produces the token bridge, state matrix, and
-  breakpoint table, when the change implements a design file.
-- `data-flow-timing-auditor` settlement contracts and gate design, when the feature has one-shot
-  effects (analytics, seeds, redirects, caches, queue acks).
+## PLAN lenses (before writing code)
 
-Output of this gate: a single agreed plan (placement, signatures, test plan, risks, surfaced
-assumptions). Before locking the plan, list the assumptions the request leaves implicit (missing
-flows, unspecified inputs, defaults being guessed) and resolve or flag each; a non-trivial plan that
-names zero assumptions is under-examined. If the advisors disagree, resolve it in the plan before
-coding. For an untested target, write characterization tests that pin current behavior and get them
-green first.
+Run only the relevant ones. Lens file in parentheses.
 
-## Implement (via the executor agent)
+- Placement and blast radius: where the code belongs, module boundaries, what else it touches, fit to
+  existing repo patterns (`system-architect.md`).
+- Exact shapes: function and query signatures, request and response shapes, the edge-case matrix,
+  once placement is settled (`system-designer.md`).
+- Reuse and right-sizing: what to factor out versus leave alone, and an explicit guard against
+  premature abstraction (`principles-engineer.md`).
+- Structural soundness: coupling, cohesion, SOLID and GRASP, on larger designs only
+  (`design-principles-advisor.md`).
+- Version-correct library usage: check the version actually installed in `node_modules` or `go.mod`,
+  and the version-matched official docs, before using an API (`docs-researcher.md`).
+- Spec baseline: pin it, lint the acceptance criteria, seed the traceability matrix
+  (`spec-fidelity-auditor.md`).
+- Design source: pin the file and node, build the token bridge, the state matrix, and the breakpoint
+  table, when the change implements a design (`design-parity-auditor.md`).
+- Settlement and one-shot effects: when the feature fires analytics, seeds, redirects, caches, or
+  queue acks off eventually-consistent state (`data-flow-timing-auditor.md`).
 
-The main loop specifies the exact changes (files, edits, rationale), then dispatches ONE sequential
-executor agent (model: sonnet) to apply them. The executor applies the edits and reports back the
-diff; the main loop reviews the reported diff before proceeding. Keep each PR single-purpose and one
-commit. Never run mutating agents in parallel in the same working dir; one executor at a time per repo.
+Close the gate with a plan that states placement, signatures, the test plan, the risks, and the
+assumptions the request left implicit. A non-trivial plan naming zero assumptions is under-examined.
+For an untested target, write characterization tests that pin current behavior and get them green
+before changing anything.
 
-## Gate 2: VERIFY (after the diff exists, before commit)
+## VERIFY lenses (after the diff exists, before commit)
 
-The executor runs the authoritative lint/build/change-related tests first for fast feedback and
-reports the commands and results; `developer-reviewer` then re-runs those same commands itself in its
-own context and pastes the raw output (exit codes, failing test names). Go/no-go gates on that
-independent run, never on the executor's self-reported green. Refresh the brief with the diff, then
-dispatch in parallel, each dispatch naming the brief path:
-- `developer-reviewer` correctness, invariants, boundary/nil/ordering, test coverage red to green,
-  AGENTS.md compliance. Adversarial: it tries to break the diff. Diff the test files: a deleted
-  test, a newly added skip, or a loosened assertion used to reach green is a no-go finding, not a
-  fix (tests are the referee; the diff may add tests but must not weaken or delete them). Skip
-  explicitly when the diff touches no test files.
-- `spec-fidelity-auditor` bidirectional trace against the ticket/spec/KB, or against the agreed
-  Gate 1 plan when no external spec exists: every criterion delivered at its promised evidence
-  grade, every hunk traced or dispositioned (gold plating, scope creep).
-- `design-parity-auditor` parity against the pinned design source: token identity, layout semantics,
-  state matrix, breakpoints, WCAG floors (UI changes; state Figma = N/A explicitly otherwise).
-- `data-flow-timing-auditor` provenance audit of the diff's inputs: settlement, proxy gates,
-  one-shot consumers, when the change reads cross-file state or fires one-shot effects.
-- `performance-optimizer` complexity and allocation regressions, when the change is hot-path.
-- `senior-software-engineer` idiom and construction self-check in the repo's language.
-- Re-run the relevant Gate 1 advisor to confirm the implementation matched the agreed structure.
+- Correctness, adversarially: try to break your own diff. Boundaries, nil and empty, collection
+  ordering, timezones, invariants, contracts (`developer-reviewer.md`).
+- Test-diff integrity: diff the test files. A deleted test, a new skip, or a loosened assertion used
+  to reach green is a no-go finding, not a fix. Tests are the referee.
+- Spec trace, both ways: every criterion delivered at its promised evidence grade, and every diff hunk
+  traced to a spec clause or dispositioned as gold plating or scope creep
+  (`spec-fidelity-auditor.md`).
+- Design parity: token identity before resolved values, layout as auto-layout semantics, the state
+  matrix, exact breakpoint boundaries, WCAG floors. State "Figma N/A" explicitly when there is no
+  design (`design-parity-auditor.md`).
+- Data flow and timing: provenance of every input the diff reads, when it crosses files or fires
+  one-shot effects (`data-flow-timing-auditor.md`).
+- Performance: only when the change is on a hot path (`performance-optimizer.md`).
+- Idiom and repo compliance: the repo's own conventions and its AGENTS.md
+  (`senior-software-engineer.md`).
+- Re-check the implementation against the structure agreed at PLAN.
 
-Each VERIFY finding is triaged: fix it, or record why it is acceptable. Lens verdicts must cite
-concrete evidence (file:line or real output); right-size the panel for trivial diffs, with skips
-declared explicitly, never silent. Gate the commit on an explicit go/no-go: do not commit with an
-unresolved correctness finding. The fix-then-re-verify cycle is bounded: if VERIFY stays no-go after
-two fix rounds on the same class of finding, stop, summarize the unresolved finding and what was
-tried, and surface it to the user for a decision instead of iterating further.
+## Evidence rules
 
-## Commit
+Every verdict cites `file:line` or real pasted command output (exit codes, failing test names). Run
+lint, build, and the change-related tests yourself, fresh, and gate on that output. Never accept or
+report a self-described green.
 
-Only after VERIFY is go: dispatch the executor agent to re-check the diff against the repo's
-AGENTS.md, run lint/build/tests fresh, state compliance, commit (single commit per PR), and open the
-PR with the `/pr` skill. The main loop reviews the executor's report before treating the PR as done.
+## Go and no-go, bounded
 
-## Scope discipline
+Triage each finding: fix it, or record why it is acceptable. Do not commit with an unresolved
+correctness finding. The fix-then-re-verify cycle is bounded: if the same class of finding is still
+no-go after two rounds, stop, summarize what was tried, and surface it for a decision instead of
+iterating.
 
-This is a prose choreography over native subagent dispatch. Do not build a coordinator, daemon,
-message bus, or worktree fan-out. If a step would need machinery beyond dispatching agents and
-reading their results, it does not belong here.
+Confirm `git branch --show-current` as its own step before any commit or amend. Then commit (one
+commit per PR) and, only when asked, open the PR with `/pr` as a draft.
+
+## Gotchas
+
+- No dispatch, no choreography, no coordinator, no worktree fan-out, no per-agent model pinning. The
+  reversal is deliberate: a brain-and-hands split caused real mistakes (2026-07-24). See the
+  single-main-loop memory fact.
+- The `model:` fields were removed from the agent files on 2026-07-26. If you ever do dispatch a lens
+  because the user asked, it inherits the session model.
+- A lens with nothing to say is a skip you declare, not a section you pad.
+- Reading the lens file is cheap and reading the wrong lens is waste: pick from the change, not from
+  the list length.

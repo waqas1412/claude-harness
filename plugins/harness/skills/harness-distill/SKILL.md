@@ -47,7 +47,8 @@ promote/reject rubric are in `references/distill-pipeline.md`.
 
 ## Step 4: Dedup and route (per survivor)
 
-Grep the memory store (`~/.claude/memory/` and any project `.claude/memory/`) plus `MEMORY.md`
+Grep the memory store that is actually auto-loaded, `~/.claude/projects/<cwd-slug>/memory/` (not
+`~/.claude/memory/`, a legacy store no session loads), plus any project `.claude/memory/`, plus `MEMORY.md`
 first; if a fact already covers it, propose an update-in-place, never a duplicate file. Route each
 survivor:
 - a durable fact, correction, decision, gotcha, or stable preference to a memory fact (one per

@@ -30,8 +30,10 @@ fill it from the profile tokens. Delete every section that does not apply; ship 
 - Verify-before-git-ops: run and report lint / test / scoped E2E fresh before opening the PR.
 - Commit authorship: no `Co-Authored-By` trailer (sole author).
 - PR no reviewers: `gh pr create` with title/body/base only; no `--reviewer`, no requested_reviewers mutations.
+- PR always draft: every `gh pr create` carries `--draft`. The author flips it to ready for review himself, the same way he requests reviewers himself.
+- One commit per PR: fold follow-ups in via amend plus `git push --force-with-lease` on the same branch ref, never a second commit.
 
-Apply via `gh pr create` (title via `--title`, body via `--body` or `--body-file`). Governs description content and structure only.
+Apply via `gh pr create --draft` (title via `--title`, body via `--body` or `--body-file`). Governs description content and structure only.
 
 ## Gotchas
 - No `.claude/harness/profile.md`: proceeding on guessed tokens instead of running `/harness-init` first leaves `TICKET_PREFIX`/`LINT_CMD` inferred rather than resolved; infer and note it, but prefer generating the profile.

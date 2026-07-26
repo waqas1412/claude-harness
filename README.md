@@ -9,7 +9,7 @@ A portable, self-adapting Claude Code setup: it carries the reusable parts of a 
 
 ## Why claude-harness
 
-Your best Claude Code habits (how you orchestrate agents, how you write PRs and tickets, the guardrails you never want to skip) live scattered across one machine's `~/.claude`. They do not travel, and they do not know anything about the repo you happen to be in.
+Your best Claude Code habits (how you review your own work, how you write PRs and tickets, the guardrails you never want to skip) live scattered across one machine's `~/.claude`. They do not travel, and they do not know anything about the repo you happen to be in.
 
 claude-harness splits that problem in two. The **portable layer** (agents, skills, hooks, working agreements) is stack-neutral and installs the same everywhere. The **project layer** is generated on demand: run `/harness-init` in any repository and it scans the code, then writes a navigation index and a project profile that the generic agents and skills read. The portable pieces stay generic; the project knowledge is injected where you are.
 
@@ -67,17 +67,19 @@ From then on, `/pr`, `/ticket`, and the advisor agents read that generated profi
 
 ## What you get
 
-- **Working agreements** (`global/CLAUDE.md`): always-on rules (multi-agent orchestration, no em dash, no Co-Authored-By, no PR reviewers, one commit per PR, characterization-tests-first, verify before git ops, and more). Installed as your global `~/.claude/CLAUDE.md`.
+- **Working agreements** (`global/CLAUDE.md`): always-on rules (single main loop, no em dash, no Co-Authored-By, no PR reviewers, one commit per PR, characterization-tests-first, verify before git ops, and more). Installed as your global `~/.claude/CLAUDE.md`.
 - **Advisor agents** (`plugins/harness/agents/`): 13 read-only PLAN/VERIFY advisors (system-architect, system-designer, developer-reviewer, data-flow-timing-auditor, spec-fidelity-auditor, design-parity-auditor, performance-optimizer, principles-engineer, design-principles-advisor, docs-researcher, senior-software-engineer, plus pr-author and jira-ticket-author). They defer to the repo's own generated index for stack and conventions, so they work in any codebase.
-- **Skills** (`plugins/harness/skills/`), 7 in total:
+- **Skills** (`plugins/harness/skills/`), 9 in total:
   - `/harness-init` scans the current repo and generates its navigation harness (see [The self-adapting part](#the-self-adapting-part)).
   - `/workspace-init` scans a multi-repo workspace root and generates the workspace router (catalog CLAUDE.md, per-repo `.claude/repo-index/<repo>.md` deep indexes, navigation, and a `.claude/harness/seams/` cluster config). Complements `/harness-init`, does not replace it.
   - `/refresh-seams` rebuilds the cross-repo integration map: evidence-based seam discovery by parallel hunter agents, every edge verified by `file:line` proof, emitting `.claude/meta/seams.json`, per-repo seam sections, and `.claude/meta/integration-map.md`.
-  - `/orchestrate` runs a change through the multi-agent PLAN and VERIFY loop in one command.
+  - `/orchestrate` runs the review lenses over a change in the solo main loop: pick the lenses the change touches, apply each as a checklist against real code and real command output, gate go/no-go on cited evidence. No subagent dispatch.
+  - `/sync-prs` brings every open PR up to date with its real base branch, one commit each, rebasing in stack order and handing conflicts back instead of guessing.
+  - `/pr-comments` triages unresolved review threads: agree and fix scoped to that PR's diff, or disagree with a citation from the version-matched official doc, then reply and resolve.
   - `/harness-distill` distills durable learnings from recent sessions and code-review corrections into proposed memory facts, CLAUDE.md rules, or skill Gotchas, verified by a skeptic and gated on your approval.
   - `/pr` and `/ticket` write to house templates, reading project tokens from a per-repo profile.
-- **Hooks** (`plugins/harness/hooks/`): 4 PreToolUse guards that mechanically block a Co-Authored-By trailer (`block-coauthor.sh`), a reviewer flag on `gh pr` and `requested_reviewers` via `gh api` (`block-pr-reviewer.sh`), a bare `git push --force` / `-f` (`block-force-push.sh`), and an em dash in authored markdown (`block-md-emdash.sh`); plus 1 PostToolUse output filter (`filter-verbose-output.py`, needs `python3`) that trims passing/verbose test and Playwright output while surfacing failures, errors, warnings, and the run summary first, so failures survive even a truncated preview and the full raw log stays on disk. It only touches recognized test runners over a size threshold and is fail-safe: any unrecognized command, small output, or anomaly passes through untouched. See [`SECURITY.md`](./SECURITY.md) for the threat model and known residual bypasses.
-- **Memory:** the installed `CLAUDE.md` carries a memory convention (one fact per file plus a `MEMORY.md` index), and the installer seeds a `~/.claude/memory/` store.
+- **Hooks** (`plugins/harness/hooks/`): 4 PreToolUse guards that mechanically block a Co-Authored-By trailer (`block-coauthor.sh`), a reviewer flag on `gh pr` and `requested_reviewers` via `gh api` (`block-pr-reviewer.sh`), a bare `git push --force` / `-f` (`block-force-push.sh`), and an em dash in authored markdown or in prose published through the shell (`block-md-emdash.sh`, covering `git commit`, `gh pr`/`gh issue` bodies and comments, `gh api`, and Confluence REST publishes, and reporting the offending line so the fix is one edit); plus 1 PostToolUse output filter (`filter-verbose-output.py`, needs `python3`) that trims passing/verbose test and Playwright output while surfacing failures first by severity tier (hard failures, then run summaries, then warnings), so a real failure late in a log is never crowded out of the digest by earlier warnings and the full raw log stays on disk. It only touches recognized test runners over a size threshold and is fail-safe: any unrecognized command, small output, or anomaly passes through untouched. See [`SECURITY.md`](./SECURITY.md) for the threat model and known residual bypasses.
+- **Memory:** the installed `CLAUDE.md` carries a memory convention (one fact per file plus a `MEMORY.md` index), and the installer seeds a `~/.claude/memory/` store. Note that the store Claude Code actually auto-loads is the workspace-scoped one at `~/.claude/projects/<cwd-slug>/memory/`; the convention in `CLAUDE.md` points there.
 - **Quality gates:** `scripts/validate.sh` and `tests/run-hook-tests.sh` run in CI on every push and PR, and `install.sh --check` re-verifies hook behavior and memory integrity on a live install.
 
 ## The self-adapting part

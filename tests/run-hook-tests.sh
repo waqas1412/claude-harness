@@ -55,6 +55,25 @@ run "emdash: Bash gh issue edit blocks" block-md-emdash.sh 2 "$(printf '{"tool_n
 run "emdash: Bash cat em-dash file passes" block-md-emdash.sh 0 "$(printf '{"tool_name":"Bash","tool_input":{"command":"cat notes%s.md"}}' "$EM")"
 run "emdash: Bash non-authoring passes" block-md-emdash.sh 0 "$(printf '{"tool_name":"Bash","tool_input":{"command":"git status %s"}}' "$EM")"
 run "emdash: Bash clean commit passes" block-md-emdash.sh 0 '{"tool_name":"Bash","tool_input":{"command":"git commit -m clean-message"}}'
+# widened Bash coverage: review-thread replies, gh api bodies, and Confluence REST publishes
+run "emdash: Bash gh pr comment blocks" block-md-emdash.sh 2 "$(printf '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body a%sb"}}' "$EM")"
+run "emdash: Bash gh pr review blocks"  block-md-emdash.sh 2 "$(printf '{"tool_name":"Bash","tool_input":{"command":"gh pr review 1 --comment -b a%sb"}}' "$EM")"
+run "emdash: Bash gh api body blocks"   block-md-emdash.sh 2 "$(printf '{"tool_name":"Bash","tool_input":{"command":"gh api graphql -f body=a%sb"}}' "$EM")"
+run "emdash: Bash confluence PUT blocks" block-md-emdash.sh 2 "$(printf '{"tool_name":"Bash","tool_input":{"command":"curl -X PUT https://x/wiki/rest/api/content/1 -d a%sb"}}' "$EM")"
+run "emdash: Bash clean gh pr comment passes" block-md-emdash.sh 0 '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"clean reply\""}}'
+
+# the block message must locate the offence, so the fix is one edit and not a hunt
+emdash_reports_location() {
+  local out json
+  # \\n stays a literal backslash-n so the JSON string is valid (a raw newline would break jq)
+  json="{\"tool_input\":{\"file_path\":\"/x/a.md\",\"content\":\"ok line\\nbad ${EM} here\\nok\"}}"
+  out=$(printf '%s' "$json" | sh "$HOOKS/block-md-emdash.sh" 2>&1 >/dev/null)
+  case "$out" in
+    *"content line: 2:"*"<<EMDASH>>"*) PASS=$((PASS + 1)); printf 'PASS  %-46s\n' "emdash: block names line + marks the char" ;;
+    *) FAIL=$((FAIL + 1)); printf 'FAIL  %-46s got: %s\n' "emdash: block names line + marks the char" "$out" ;;
+  esac
+}
+emdash_reports_location
 
 # filter-verbose-output (PostToolUse: exits 0 always; assert on stdout, not exit code)
 if command -v python3 >/dev/null 2>&1; then
@@ -76,6 +95,33 @@ if command -v python3 >/dev/null 2>&1; then
   runf "filter: non-test big output passes through"      empty   "$FVO_CAT"
   runf "filter: small test output passes through"        empty   '{"tool_name":"Bash","tool_input":{"command":"yarn test:playwright"},"tool_response":{"stdout":"3 passed\nok","stderr":"","interrupted":false,"isImage":false,"noOutputExpected":false}}'
   runf "filter: malformed input passes through"          empty   'not json{'
+
+  # Regression: a real failure that appears AFTER more warning/summary lines than the digest cap must
+  # still reach the digest. Line-ordered filling dropped it; severity-tiered filling keeps it.
+  FVO_LATE="$(python3 -c 'import json
+log  = ["Running 500 tests using 8 workers", ""]
+log += ["  npm warn deprecated pkg-%d@1.0.0: superseded" % i for i in range(90)]
+log += ["  ok %d - passing spec (11ms)" % i for i in range(400)]
+log += ["  x LateSuite > boom FAILED (2.1s)"]
+log += ["  ok %d - passing spec (9ms)" % i for i in range(400, 480)]
+log += ["Tests: 1 failed, 499 passed, 500 total"]
+print(json.dumps({"tool_name":"Bash","tool_input":{"command":"yarn test:playwright"},
+  "tool_response":{"stdout":"\n".join(log),"stderr":"","interrupted":False,"isImage":False,"noOutputExpected":False}}))')"
+  late_failure_survives() {
+    local out digest
+    out="$(printf '%s' "$FVO_LATE" | python3 "$FVO" 2>/dev/null)"
+    # the digest is everything before the body separator
+    digest="$(printf '%s' "$out" | python3 -c 'import sys,json
+try: t=json.load(sys.stdin)["hookSpecificOutput"]["updatedToolOutput"]["stdout"]
+except Exception: print(""); raise SystemExit
+print(t.split("===== stdout, original order")[0])' 2>/dev/null)"
+    if printf '%s' "$digest" | grep -q 'LateSuite > boom FAILED'; then
+      PASS=$((PASS + 1)); printf 'PASS  %-46s\n' "filter: late failure survives the digest cap"
+    else
+      FAIL=$((FAIL + 1)); printf 'FAIL  %-46s (crowded out by warnings)\n' "filter: late failure survives the digest cap"
+    fi
+  }
+  late_failure_survives
 else
   echo "SKIP  filter-verbose-output tests (python3 absent)"
 fi

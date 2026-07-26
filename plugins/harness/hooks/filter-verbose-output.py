@@ -14,9 +14,13 @@ Contract (verified against code.claude.com/docs/en/hooks and an empirical probe)
 Design for a quality-first user:
   * Only recognized test/Playwright runners with large output are touched;
     everything else passes through untouched.
-  * The filtered result LEADS with every failure/error line and the run summary,
-    so they survive even a truncated preview of a huge log; the original-order
-    (trimmed) body follows. Nothing is fabricated or reordered within the body.
+  * The surfaced digest is filled by SEVERITY TIER, not by line order, so a real
+    failure late in a log can never be pushed out of the cap by warnings or
+    assertion chatter earlier in the log. Tier 1 hard failures, then tier 2 run
+    summaries, then tier 3 warnings, each tier in original order.
+  * The original-order (trimmed) body follows the digest. Nothing is fabricated
+    or reordered within the body. Assertion detail (expect/received/stack
+    frames) is kept as body context around each hard failure.
   * The full raw log is still persisted by the harness; the note says so.
   * Fail-safe: any anomaly (unknown shape, parse error, small output, non-test
     command, or a filter that would not clearly help) prints nothing and exits 0,
@@ -28,7 +32,7 @@ import sys, json, re
 TRIGGER_CHARS = 8000          # leave anything smaller alone
 HEAD, TAIL, CTX = 12, 60, 3   # run header, trailing summary, failure context
 MIN_DROP_RATIO = 0.20         # only rewrite if it removes at least this fraction
-MAX_DIGEST = 60               # cap the surfaced failure/summary digest
+MAX_DIGEST = 60               # cap the surfaced digest, filled tier by tier
 
 CMD_RE = re.compile(r"""(?ix)
     playwright | \bjest\b | vitest | \bmocha\b | pytest | \bnose2?\b |
@@ -37,17 +41,20 @@ CMD_RE = re.compile(r"""(?ix)
     \btest:[\w:-]+
 """)
 
-FAIL_RE = re.compile(r"""(?ix)
-    \bfail(?:ed|ing|ure)?\b | \berror\b | \bexception\b | \bassert | traceback |
-    \btimed?\s*out\b | \bpanic\b | \bunhandled\b | \bexpected\b | \breceived\b |
-    \bnot\s+ok\b | ✕|✗|×|✘|✖ | ^\s*at\s+ | \bFAIL\b | \bERR |
-    \bwarn(?:ing)?s?\b | \bdeprecat | \bTS\d{3,}\b
+# Tier 1: a real failure. These must never be crowded out of the digest.
+HARD_RE = re.compile(r"""(?ix)
+    \bfail(?:ed|ing|ure)?\b | \berror\b | \bexception\b | \bpanic\b |
+    \bunhandled\b | \btimed?\s*out\b | \bnot\s+ok\b | \bFAIL\b | \bERR |
+    ✕|✗|×|✘|✖|●
 """)
 
-# Aggregate summary lines worth surfacing. Deliberately does NOT match a bare
-# "<n> passed" (that appears in every per-test line); only run-level rollups:
-# a "Tests:"/"Suites:" header, any failure count, mocha "N passing/failing",
-# a total, or timing/coverage.
+# A HARD hit on a line that only reports a zero count is not a failure.
+ZERO_RE = re.compile(r"""(?ix)
+    \b(?:0|no)\s+(?:errors?|failures?|failed|failing|problems?|warnings?)\b
+""")
+
+# Tier 2: run-level rollups. Deliberately does NOT match a bare "<n> passed"
+# (that appears in every per-test line); only aggregate lines.
 SUMMARY_RE = re.compile(r"""(?ix)
     \btests?:\s | \btest\s+suites?:\s | \bsuites?:\s |
     \b\d+\s+(?:failed|failing|errored|pending)\b |
@@ -55,25 +62,72 @@ SUMMARY_RE = re.compile(r"""(?ix)
     \btime:\s | \bduration\b | \bcoverage\b
 """)
 
+# Tier 3: worth surfacing, but never at the cost of a hard failure.
+WARN_RE = re.compile(r"""(?ix)
+    \bwarn(?:ing)?s?\b | \bdeprecat | \bTS\d{3,}\b
+""")
+
+# Not surfaced in the digest, but kept in the body: the detail that explains a
+# failure. Matching these only widens context, it never fills the digest.
+DETAIL_RE = re.compile(r"""(?ix)
+    \bassert | \bexpected\b | \breceived\b | traceback | ^\s*at\s+
+""")
+
+
+def _classify(lines):
+    """Return (hard_idx, summ_idx, warn_idx, detail_idx) line-index lists."""
+    hard, summ, warn, detail = [], [], [], []
+    for i, ln in enumerate(lines):
+        if HARD_RE.search(ln) and not ZERO_RE.search(ln):
+            hard.append(i)
+        if SUMMARY_RE.search(ln):
+            summ.append(i)
+        if WARN_RE.search(ln):
+            warn.append(i)
+        if DETAIL_RE.search(ln):
+            detail.append(i)
+    return hard, summ, warn, detail
+
+
+def _build_digest(lines, hard, summ, warn):
+    """Fill the cap by severity tier, each tier in original line order."""
+    out, seen, dropped = [], set(), 0
+    for tier in (hard, summ, warn):
+        fresh = [i for i in tier if i not in seen]
+        room = MAX_DIGEST - len(out)
+        if room <= 0:
+            dropped += len(fresh)
+            continue
+        take = fresh[:room]
+        dropped += len(fresh) - len(take)
+        for i in take:
+            seen.add(i)
+        out.extend(take)
+    digest = [lines[i] for i in sorted(out)]
+    if dropped:
+        digest.append("        ... [%d more failure/summary/warning lines; see "
+                      "full log] ..." % dropped)
+    return digest
+
 
 def _filter(text):
-    """Return (surfaced_digest_lines, body_text, kept, total) or None."""
+    """Return (digest_lines, body_text, kept, total) or None."""
     lines = text.split("\n")
     n = len(lines)
     if n <= HEAD + TAIL + 20:
         return None
 
-    fail_idx = [i for i, ln in enumerate(lines) if FAIL_RE.search(ln)]
-    summ_idx = [i for i, ln in enumerate(lines) if SUMMARY_RE.search(ln)]
+    hard, summ, warn, detail = _classify(lines)
 
     keep = set(range(min(HEAD, n)))
     keep.update(range(max(0, n - TAIL), n))
-    for i in fail_idx:
+    for i in hard + detail:                      # failures keep their context
         keep.update(range(max(0, i - CTX), min(n, i + CTX + 1)))
+    keep.update(summ)                            # rollups keep the line only
+    keep.update(warn)
     if len(keep) >= n * (1 - MIN_DROP_RATIO):
         return None  # too little passing noise to bother
 
-    # in-order body with omission markers
     body, prev = [], -1
     for i in sorted(keep):
         if i > prev + 1:
@@ -81,14 +135,7 @@ def _filter(text):
         body.append(lines[i])
         prev = i
 
-    # failures + summary surfaced first (deduped, in original order, capped)
-    dig_idx = sorted(set(fail_idx) | set(summ_idx))
-    truncated = len(dig_idx) > MAX_DIGEST
-    digest = [lines[i] for i in dig_idx[:MAX_DIGEST]]
-    if truncated:
-        digest.append("        ... [%d more failure/summary lines; see full log] ..."
-                      % (len(dig_idx) - MAX_DIGEST))
-    return digest, "\n".join(body), len(keep), n
+    return _build_digest(lines, hard, summ, warn), "\n".join(body), len(keep), n
 
 
 def _rebuild(field, digest, body):
@@ -137,9 +184,10 @@ def main():
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "PostToolUse",
         "updatedToolOutput": new_tr,
-        "additionalContext": ("filter-verbose-output surfaced all failure/error "
-                              "and summary lines first, then a trimmed in-order "
-                              "log; passing/verbose lines were removed. " +
+        "additionalContext": ("filter-verbose-output surfaced failure lines "
+                              "first (by severity, so a late failure is never "
+                              "crowded out), then run summaries, then warnings, "
+                              "then a trimmed in-order log. " +
                               "; ".join(notes) +
                               ". The full raw log is persisted; re-run the exact "
                               "command if you need it."),

@@ -8,32 +8,22 @@ per-project profile that `/harness-init` generates at `.claude/harness/profile.m
 
 ## How I work
 
-- Multi-agent orchestration: solve substantial tasks via multiple agents and multiple workflows at
-  every step (research, architecture, review, verify, test, breaking-changes).
-  - Brain-only main loop: it plans, delegates, reads condensed agent reports, and decides; it never
-    executes actions itself (no direct shell/git/lint/build/test runs, no product-code edits; reading
-    files and writing its own memory store are allowed).
-  - Pinned model per agent, never the inherited session model (escalation tier = opus for
-    wrong-answer-is-expensive reasoning such as adversarial verify, architecture, correctness review;
-    executor tier = sonnet for edits, git ops, verify runs, standard research; mechanical tier = haiku
-    for crisp batch sweeps). Model and effort are orthogonal dials: model sets capability, effort sets
-    how much work (files read, tools used, steps) before checking in; start from the default effort
-    and adjust it as a standing preference, not task-by-task. When a delegated agent underperforms,
-    diagnose which dial: escalate the model if it had full context and still got it wrong, raise
-    effort if it skipped files, did not run tests, or did not double-check.
-  - ONE sequential executor per repo for mutating/verify work; read-only research/review agents fan
-    out concurrently.
-  - Agents return condensed digests (roughly 1-2k tokens, with file:line pointers), never raw logs or
-    dumps.
-  - Review-lens verdicts must cite evidence (file:line or real output); right-size the lens panel for
-    trivial diffs with skips declared, never silent.
-  - Research diverse authentic sources (official standards, design systems, mature products), then
-    adversarially verify the primary source before pushing.
-  - Solo only on trivial or conversational turns.
+- Single main loop: solve tasks yourself in one loop, using whatever model is selected for the
+  session. Plan, read code, edit, and run shell/git/lint/build/test directly, then review your own
+  work before committing. Do NOT delegate to subagents or spin up workflows, do NOT pin per-agent
+  models, and do NOT split "brain" (planner) from "hands" (executor). Reach for a subagent or
+  workflow ONLY when explicitly asked in the moment.
+  - Right-size self-review to the change before committing: read your own diff for the concerns that
+    actually apply (correctness and repo-fit at minimum; add spec fidelity, design parity, timing,
+    and performance when the change touches them) and cite concrete evidence (file:line or real
+    output). Say which checks you skipped and why, never silently.
+  - Ground non-trivial work in authoritative primary sources (official standards, version-matched
+    library docs and source, design systems, mature products), and verify a claim against the
+    source before acting on it.
 - Surface implicit assumptions before ambiguous or underspecified work. State the assumptions you
   are about to make, ask the questions whose answers would change the architecture (one at a time),
   and make the implicit explicit rather than filling gaps with plausible-but-wrong guesses. Applies
-  to solo turns and the PLAN gate.
+  before any ambiguous or underspecified task.
 - Avoid em dash: do not lean on the em dash (the long dash character) in prose. Default to commas,
   periods, parentheses, or colons, or restructure. Applies to chat and authored docs (PRs, tickets,
   commits). En dash in numeric ranges is fine. This is also enforced mechanically by a hook.
@@ -52,6 +42,13 @@ per-project profile that `/harness-init` generates at `.claude/harness/profile.m
   sending messages, changing shared infrastructure). The one-commit-per-PR amend plus
   `git push --force-with-lease` on your own open PR branch is the established flow and needs no
   extra approval.
+- Secrets never in chat: never ask for, and never accept, a credential (private key, PAT, session
+  cookie, password, connection string) as chat text. The moment one is needed, offer the file path
+  first: have the user write it himself to a file outside every repo (`~/.config/<org>/<name>.txt`,
+  `chmod 600`), then read it only as a shell variable (`-H "Authorization: Bearer $(cat ~/.config/...)"`,
+  `-b "$(cat ...)"`) and never echo, log, or copy it into a repo, memory file, doc, ticket, or commit.
+  If a secret does reach the transcript anyway, say so plainly and recommend rotating it rather than
+  reusing it. Per-service file names are workspace facts and live in the memory store, not here.
 - Commit authorship: never add a `Co-Authored-By` trailer. Sole author. Enforced by a hook.
 - PR reviewers: `gh pr create` with title, body, and base only. No `--reviewer`, no
   requested_reviewers mutations. Request reviews yourself. Enforced by a hook.
@@ -82,10 +79,14 @@ per-project profile that `/harness-init` generates at `.claude/harness/profile.m
 
 ## Memory
 
-- Keep durable, reusable facts in the memory store at `~/.claude/memory/`, one fact per file with
-  frontmatter (`name`, `description`, `metadata.type` = user | feedback | project | reference).
-- `~/.claude/memory/MEMORY.md` is the index: one line per fact (`- [Title](file.md) hook`). Add a
-  pointer when you create a fact; this index is the part loaded each session.
+- Keep durable, reusable facts in the memory store, one fact per file with frontmatter (`name`,
+  `description`, `metadata.type` = user | feedback | project | reference). The store that is actually
+  auto-loaded is the workspace-scoped one at `~/.claude/projects/<cwd-slug>/memory/`, where
+  `<cwd-slug>` is the working directory path with separators replaced by dashes. Write there, not to
+  `~/.claude/memory/`, which is a legacy store that no session loads.
+- That store's `MEMORY.md` is the index: one line per fact (`- [Title](file.md) hook`). Add a pointer
+  when you create a fact; this index is the part loaded each session, so a fact with no pointer line
+  is dark and will never fire.
 - Write only what is durable and reusable: corrections, decisions, hard-won gotchas, stable user
   preferences. Never store transient task state or anything the repo or git history already records.
 - Before saving, check for an existing file that covers it and update that instead of duplicating.
@@ -99,9 +100,8 @@ per-project profile that `/harness-init` generates at `.claude/harness/profile.m
 - Just-in-time context: locate the slice with grep/glob/metadata and read only that slice; do not
   bulk-read whole files, directories, or knowledge bases into context. Filter or summarize large
   tool outputs at the source rather than piping raw results back through the loop.
-- Keep the session model stable within a task so the cached prefix survives; to use a cheaper tier,
-  delegate to a pinned-model subagent (a fallbackModel swap on overload is a deliberate degradation
-  exception, not a violation).
+- Keep the session model stable within a task so the cached prefix survives (a fallbackModel swap on
+  overload is a deliberate degradation exception, not a violation).
 - Reset with `/clear` when switching to a distinct task so stale reads and command output do not
   carry forward.
 
