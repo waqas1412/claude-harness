@@ -42,6 +42,19 @@ run "force-push: --force-if-includes passes" block-force-push.sh 0 '{"tool_input
 run "force-push: plain push passes"        block-force-push.sh 0 '{"tool_input":{"command":"git push origin main"}}'
 run "force-push: non-push -f ignored"      block-force-push.sh 0 '{"tool_input":{"command":"grep -f pattern file"}}'
 run "force-push: commit mentioning force push passes" block-force-push.sh 0 '{"tool_input":{"command":"git commit -m \"force push\""}}'
+# the flag search is scoped to the git push SEGMENT: an unrelated -f elsewhere on the line is not a
+# force push. Whole-line scanning blocked all four of these.
+run "force-push: push then unrelated rm -f passes"  block-force-push.sh 0 '{"tool_input":{"command":"git push origin main; rm -f /tmp/x"}}'
+run "force-push: rm -f then push passes"            block-force-push.sh 0 '{"tool_input":{"command":"rm -f /tmp/x && git push origin main"}}'
+run "force-push: push piped to tail -f passes"      block-force-push.sh 0 '{"tool_input":{"command":"git push origin main 2>&1 | tail -f"}}'
+run "force-push: push with -c flag passes"           block-force-push.sh 0 '{"tool_input":{"command":"git -c credential.helper= push origin main"}}'
+# but a real force in its own segment still blocks, even beside an innocent segment
+run "force-push: force in its own segment blocks"   block-force-push.sh 2 '{"tool_input":{"command":"echo ok && git push -f origin main"}}'
+run "force-push: lease beside unrelated -f passes"  block-force-push.sh 0 '{"tool_input":{"command":"git push --force-with-lease origin main; rm -f /tmp/x"}}'
+# a segment counts only if it BEGINS with a push invocation, so prose that merely mentions one is safe
+run "force-push: commit prose naming push and -f passes" block-force-push.sh 0 '{"tool_input":{"command":"git commit -m \\"fix: git push -f scanning was too broad, hit on rm -f /tmp/x\\""}}'
+run "force-push: env prefix before push blocks"      block-force-push.sh 2 '{"tool_input":{"command":"GIT_ASKPASS=/tmp/a git push -f origin main"}}'
+run "force-push: echo mentioning push -f passes"     block-force-push.sh 0 '{"tool_input":{"command":"echo \\"never run git push -f\\""}}'
 
 # block-md-emdash
 run "emdash: em dash in .md blocks"   block-md-emdash.sh 2 "$(printf '{"tool_input":{"file_path":"/x/a.md","content":"alpha %s beta"}}' "$EM")"
