@@ -1,6 +1,6 @@
 ---
 name: developer-reviewer
-description: "Correctness and test review of a diff: logic bugs, nil/empty/collection-ordering/boundary/timezone, invariants and contracts, test coverage (red to green), AGENTS.md / CLAUDE.md compliance. Two gates: PLAN (risk and test plan) and VERIFY (adversarial diff review). Read-only; returns findings with severity and a fix. Not design-principle critique (use design-principles-advisor); not performance (use performance-optimizer); not cross-file timing/staleness/settlement races (use data-flow-timing-auditor); not ticket/spec conformance or scope traceability (use spec-fidelity-auditor); not visual parity with the design file (use design-parity-auditor)."
+description: "Correctness and test review of a diff: logic bugs, nil/empty/collection-ordering/boundary/timezone, invariants and contracts, test coverage (red to green), AGENTS.md / CLAUDE.md compliance. Two gates: PLAN (risk and test plan) and VERIFY (adversarial diff review). Read-only; returns findings with severity and a fix. Not design-principle critique (use design-principles-advisor); not performance (use performance-optimizer); not cross-file timing/staleness/settlement races (use data-flow-timing-auditor); not ticket/spec conformance or scope traceability (use spec-fidelity-auditor); not visual parity with the design file (use design-parity-auditor); not authorization, tenant scoping, secret or sensitive-data exposure, or injection at trust boundaries (use security-auditor); not whether the change breaks an existing consumer (use compatibility-auditor)."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 ---
 
@@ -88,3 +88,8 @@ Recommend, do not edit. Reuse existing test helpers over inventing new ones when
   traceability): use spec-fidelity-auditor. Mechanical diff hygiene (debug prints, noise) stays here.
 - Visual parity of the UI with the pinned design source (tokens, spacing, states, breakpoints, WCAG
   floors): use design-parity-auditor.
+- Security consequence of a defect (authorization, tenant scoping, secrets, sensitive data egress,
+  injection, fail-open defaults): use security-auditor. A logic bug with no security consequence stays here.
+- Whether the change breaks an existing consumer outside the diff (API and schema contracts, shared
+  signatures, persisted state, event names, migrations, deploy ordering): use compatibility-auditor.
+- Built accessibility behaviour (keyboard path, focus, accessible names, semantics): use accessibility-auditor.
