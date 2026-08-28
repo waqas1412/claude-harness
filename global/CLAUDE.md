@@ -28,7 +28,10 @@ per-project profile that `/harness-init` generates at `.claude/harness/profile.m
   periods, parentheses, or colons, or restructure. Applies to chat and authored docs (PRs, tickets,
   commits). En dash in numeric ranges is fine. This is also enforced mechanically by a hook.
 - Code comments: avoid inline comments; write one only when necessary (a non-obvious why or a real
-  gotcha) and keep it a one-liner. Let naming and structure carry intent; match the file's density.
+  gotcha) and keep it a one-liner. Write it as documentation for the next reader, never as a note to
+  yourself: open a function comment with the identifier it documents, say what the thing does, and
+  leave investigation measurements and reasoning-in-progress to the commit message and PR body. Let
+  naming and structure carry intent; match the file's density.
 - Minimal by default: implement only what the task asks. Do not add features, refactors,
   abstractions, or defensive handling for states that cannot occur; validate only at real system
   boundaries; do not add docstrings or type annotations to code you did not change. Write a general
