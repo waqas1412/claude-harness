@@ -42,7 +42,7 @@ opened, and results are reported in chat. They just do not go in the body.
 - Commit authorship: no `Co-Authored-By` trailer (sole author).
 - PR no reviewers: `gh pr create` with title/body/base only; no `--reviewer`, no requested_reviewers mutations.
 - PR always draft: every `gh pr create` carries `--draft`. The author flips it to ready for review himself, the same way he requests reviewers himself.
-- One commit per PR: fold follow-ups in via amend plus `git push --force-with-lease` on the same branch ref, never a second commit.
+- PR commits: push review fixes and follow-ups as additional commits; do not amend and force-push to keep the branch at one commit.
 
 Apply via `gh pr create --draft` (title via `--title`, body via `--body` or `--body-file`). Governs description content and structure only.
 

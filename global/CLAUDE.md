@@ -27,6 +27,13 @@ per-project profile that `/harness-init` generates at `.claude/harness/profile.m
 - Avoid em dash: do not lean on the em dash (the long dash character) in prose. Default to commas,
   periods, parentheses, or colons, or restructure. Applies to chat and authored docs (PRs, tickets,
   commits). En dash in numeric ranges is fine. This is also enforced mechanically by a hook.
+- Plain words: write every piece of text in simple, everyday vocabulary, in the shortest sentence that
+  still carries the meaning. Applies to chat, PR bodies, tickets, commit messages, wiki pages, chat-app
+  and reply drafts, slide decks, and code comments. Pick the common word over the impressive one ("use"
+  not "utilise", "broken" not "malformed", "reads" not "resolves"), and drop jargon a non-engineer would
+  not follow, including the review-lens vocabulary ("seam", "gate", "provenance"), unless the word is
+  the real name of the thing: an identifier, an API field, a UI label, or a term the reader uses himself.
+  Simplify the language, never the facts; keep every number, name, and technical claim exact.
 - Code comments: avoid inline comments; write one only when necessary (a non-obvious why or a real
   gotcha) and keep it a one-liner. Write it as documentation for the next reader, never as a note to
   yourself: open a function comment with the identifier it documents, say what the thing does, and
@@ -42,9 +49,8 @@ per-project profile that `/harness-init` generates at `.claude/harness/profile.m
   first before destructive ops (deleting files or branches, dropping tables, rm -rf), truly
   hard-to-reverse ops (git reset --hard on unpushed work, history rewrites beyond your own PR
   branch), and actions newly visible to others (first push of a branch, commenting on PRs or issues,
-  sending messages, changing shared infrastructure). The one-commit-per-PR amend plus
-  `git push --force-with-lease` on your own open PR branch is the established flow and needs no
-  extra approval.
+  sending messages, changing shared infrastructure). Adding a commit and pushing it to your own open
+  PR branch is the established flow and needs no extra approval.
 - Secrets never in chat: never ask for, and never accept, a credential (private key, PAT, session
   cookie, password, connection string) as chat text. The moment one is needed, offer the file path
   first: have the user write it himself to a file outside every repo (`~/.config/<org>/<name>.txt`,
@@ -75,10 +81,10 @@ per-project profile that `/harness-init` generates at `.claude/harness/profile.m
 - Characterization tests first: when refactoring an untested target, pin existing behavior green
   first, then refactor, then red to green the intended change.
 - Branch rename closes PRs: never rename a branch that heads an open PR (GitHub closes it). Relabel
-  via PR title/body and commit amend instead.
-- One commit per PR: single commit per PR. Fold review fixes and follow-ups in via amend plus
-  `git push --force-with-lease` (same branch ref is safe; only a rename closes the PR). Never add a
-  second commit.
+  via PR title/body instead.
+- PR commits: add review fixes and follow-ups as additional commits and push normally. Do not amend
+  and force-push an already-pushed PR branch to keep it at one commit. Force-push stays fine where it
+  is inherent to the operation, such as a rebase onto a moved base.
 
 ## Memory
 

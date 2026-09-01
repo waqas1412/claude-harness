@@ -1,11 +1,11 @@
 ---
 name: sync-prs
-description: Sync the user's open PRs with their base branches, keeping one commit per PR. Read each PR's real base from gh (never assume the default branch), rebase in stack order so a parent rewrite ripples into its children, squash back to one commit, push --force-with-lease on the same branch ref, and report per-PR base-ahead / head-ahead / commit-count / conflict state. Hands any conflict back with files and hunks instead of resolving it. Use for "sync my open PRs with their base", "update PR N with development", "is branch X in sync with its base", or a plain branch sync with no PR.
+description: Sync the user's open PRs with their base branches. Read each PR's real base from gh (never assume the default branch), rebase in stack order so a parent rewrite ripples into its children, preserve every commit, push --force-with-lease on the same branch ref, and report per-PR base-ahead / head-ahead / commit-count / conflict state. Hands any conflict back with files and hunks instead of resolving it. Use for "sync my open PRs with their base", "update PR N with development", "is branch X in sync with its base", or a plain branch sync with no PR.
 argument-hint: "[PR number or branch, or blank for all open PRs]"
 allowed-tools: Read, Grep, Glob, Bash
 ---
 
-# /sync-prs: bring open PRs up to date, one commit each
+# /sync-prs: bring open PRs up to date
 
 Load `.claude/harness/profile.md` for `REPO`, `DEFAULT_BRANCH`, `LINT_CMD`, `BUILD_CMD`,
 `UNIT_TEST_CMD`, `E2E_TEST_CMD`.
@@ -19,10 +19,13 @@ Opening, retargeting, or merging PRs. Review comments (use `/pr-comments`). PR b
 These come from the always-on rules and the memory store. Do not redefine them here, just do not break
 them.
 
-- One commit per PR. Fold everything in by amend or squash, never a second commit.
-- `git push --force-with-lease` on the SAME branch ref. A force-push does not close a PR and approvals
+- Preserve the branch's existing commits. A rebase replays them; do not squash them into one, and do
+  not amend to reduce the count.
+- `git push --force-with-lease` on the SAME branch ref, because a rebase rewrites the commits it
+  replays and there is no non-force way to publish that. This is the one sanctioned force-push: it is
+  inherent to rebasing, not a commit-count preference. A force-push does not close a PR and approvals
   survive it here. A branch RENAME does close it, so never rename a branch that heads an open PR.
-- Confirm `git branch --show-current` as its own step before any amend.
+- Confirm `git branch --show-current` as its own step before any rebase.
 - Never `--no-verify`, never weaken a test to get green.
 
 ## Step 1: enumerate and build the graph
@@ -53,7 +56,7 @@ gh pr list --author @me --state open --json number,headRefName,baseRefName --jq 
 ```sh
 B=origin/<baseRefName>; H=origin/<headRefName>
 git rev-list --count $H..$B     # base-ahead: commits the base has that the head lacks
-git rev-list --count $B..$H     # head-ahead: should be 1 under the one-commit rule
+git rev-list --count $B..$H     # head-ahead: the branch's own commits
 git merge-tree --write-tree --name-only $B $H >/dev/null 2>&1; echo $?   # 1 means conflicts
 ```
 
@@ -66,17 +69,11 @@ Topological order, roots first. After a parent is rewritten its head SHA changed
 be rebased onto the parent's NEW head, not onto the SHA you read in step 1. A mid-stack rebase always
 ripples: recompute children even when step 2 said they were in sync.
 
-## Step 4: squash back to one commit
+## Step 4: confirm the replay kept every commit
 
-After the rebase, if `git rev-list --count <base>..HEAD` is more than 1:
-
-```sh
-git branch --show-current          # its own step, read it before you act
-git reset --soft <base>
-git commit -C <original-commit>    # preserves the message; no Co-Authored-By trailer
-```
-
-Verify with `git log --oneline <base>..HEAD` that exactly one commit remains.
+The rebase replays the branch's commits onto the new base; it does not collapse them, and neither do
+you. Verify with `git log --oneline <base>..HEAD` that the same number of commits came out as went in,
+and report that count. A commit that vanished means the rebase dropped work: stop and surface it.
 
 ## Step 5: conflicts are handed back, not resolved
 

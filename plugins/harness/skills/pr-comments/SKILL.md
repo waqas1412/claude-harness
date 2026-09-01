@@ -1,6 +1,6 @@
 ---
 name: pr-comments
-description: Triage unresolved review threads on an open PR and close them out. Per thread, either agree (fix scoped to THIS PR's diff, verify, amend and force-with-lease, reply, resolve) or disagree (justify with a quoted citation from the version-matched official doc, reply, resolve). Every reply is drafted for approval before it posts. Use when asked about comments on a PR, or told "reply and resolve", "if agree fix, if not justify", or "what did we do about his comments".
+description: Triage unresolved review threads on an open PR and close them out. Per thread, either agree (fix scoped to THIS PR's diff, verify, commit and push, reply, resolve) or disagree (justify with a quoted citation from the version-matched official doc, reply, resolve). Every reply is drafted for approval before it posts. Use when asked about comments on a PR, or told "reply and resolve", "if agree fix, if not justify", or "what did we do about his comments".
 argument-hint: "[PR number, or blank to infer from the current branch]"
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write
 ---
@@ -66,11 +66,11 @@ or a `file:line` in `node_modules` or the module path. Check the version actuall
 latest. "Deprecated in v6" and "removed in v6" are different claims and the reviewer will check.
 If the source does not actually support the disagreement, you agreed and did not realize it: fix it.
 
-## Step 5: verify, then fold the fix into the one commit
+## Step 5: verify, then push the fix as its own commit
 
 Run `LINT_CMD`, `BUILD_CMD`, and the change-related tests fresh, and paste the real output. Then
-confirm `git branch --show-current` as its own step, amend into the single existing commit, and
-`git push --force-with-lease` on the same branch ref. Never a second commit, never a branch rename.
+confirm `git branch --show-current` as its own step, commit the fix on top, and push normally. Do not
+amend and force-push to keep the branch at one commit, and never rename the branch.
 Anything about the PR's base branch belongs to `/sync-prs`, not here.
 
 ## Step 6: draft every reply, get approval, then post
