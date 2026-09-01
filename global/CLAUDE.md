@@ -55,14 +55,14 @@ per-project profile that `/harness-init` generates at `.claude/harness/profile.m
 - Commit authorship: never add a `Co-Authored-By` trailer. Sole author. Enforced by a hook.
 - PR reviewers: `gh pr create` with title, body, and base only. No `--reviewer`, no
   requested_reviewers mutations. Request reviews yourself. Enforced by a hook.
-- PR description format: write PR bodies with the `/pr` skill (house template, profile-driven).
-  Title `<type>: <TICKET-KEY> ...`; Summary plus a tracker-close line, What changed, Why,
-  Breaking-changes-asserted, Testing (lint / build / scoped tests with red to green proof),
-  Screenshots (Before | After), Notes. Lean and skippable; list deliberate SKIPs.
-- Ticket format: write tickets with the `/ticket` skill (profile-driven templates: Story / Bug /
-  Refactor-Spike). INVEST plus persona plus 3 to 5 testable acceptance criteria, terse `<Area>:`
-  title, REQUIRED Out-of-scope section, characterization-first plan for refactors, migrate-then-delete
-  grep gate, lint/build/scoped-test gate. Lean and skippable.
+- PR description format: write PR bodies with the `/pr` skill (profile-driven). Title
+  `<type>: <TICKET-KEY> ...`. The body is minimal: a tracker-close line plus a compact summary of what
+  changed and why, and nothing else (no headings, no Testing block, no Screenshots table, no
+  breaking-changes assertion). Verification still runs fresh and is reported in chat, not in the body.
+- Ticket format: write tickets with the `/ticket` skill (profile-driven). A ticket is a type/parent
+  line, a terse `<Area>: <imperative>` title, and a compact summary of what should change and why, and
+  nothing else (no headings, no persona formula, no acceptance criteria, no Out-of-scope block, no
+  verification gate). Verification still runs when the work is done, reported in chat.
 - Verify repo conventions before git ops: before every commit, push, or PR, re-check the diff
   against the repo's agent instructions (e.g. AGENTS.md), run lint plus build plus change-related
   tests fresh, and state compliance explicitly. Confirm the current branch

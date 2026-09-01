@@ -1,6 +1,6 @@
 ---
 name: pr
-description: Write or draft a GitHub PR description to a portable house template (Summary + tracker close line, What changed, Why, Breaking-changes-asserted, Testing with red->green proof, Screenshots Before|After, Notes). Project tokens (repo, tracker prefix, verify commands) are read from .claude/harness/profile.md. Lean and skippable; delete non-applicable sections. Use when running gh pr create / gh pr edit or when asked to write a PR description/body.
+description: Write or draft a minimal GitHub PR description: a tracker close line plus a compact summary of what changed and why, and nothing else (no headings, no Testing block, no screenshots table). Project tokens (repo, tracker prefix, verify commands) are read from .claude/harness/profile.md. Use when running gh pr create / gh pr edit or when asked to write a PR description/body.
 argument-hint: "[ticket key, or blank to infer from branch]"
 allowed-tools: Read, Grep, Glob, Bash
 ---
@@ -20,10 +20,21 @@ drop the tracker-close line.
 - `<TICKET-KEY>` uses `TICKET_PREFIX` (e.g. `PROJ-1234`); omit if the project has no tracker.
 - Must stand alone in history; never "fix", "updates", "phase 1".
 
-## Body and checklist
-The full body template, the pre-submit checklist, and the deliberately-skipped list live in
+## Body
+The body is a tracker close line plus a compact summary of what changed and why. Nothing else: no
+section headings, no Testing block, no Screenshots table, no breaking-changes assertion, no
+notes-for-review.
+
+Default to bullets, not a paragraph: 2 to 4 short bullets, one line each, each naming a change and
+its why. Fall back to a single sentence only when the change is genuinely one idea and a lone bullet
+would look odd. Never a wall of prose, and never a file-by-file restatement.
+
+The exact template, the pre-submit checklist, and the deliberately-skipped list live in
 `references/pr-template.md` (in this skill's directory). Read that file when actually authoring, and
-fill it from the profile tokens. Delete every section that does not apply; ship no empty headings.
+fill it from the profile tokens.
+
+Verification is unchanged: lint, build, and change-scoped tests still run fresh before the PR is
+opened, and results are reported in chat. They just do not go in the body.
 
 ## Composes with (does not override)
 - Avoid-em-dash rule: no em dashes anywhere in title/body/commit.
@@ -37,5 +48,9 @@ Apply via `gh pr create --draft` (title via `--title`, body via `--body` or `--b
 
 ## Gotchas
 - No `.claude/harness/profile.md`: proceeding on guessed tokens instead of running `/harness-init` first leaves `TICKET_PREFIX`/`LINT_CMD` inferred rather than resolved; infer and note it, but prefer generating the profile.
-- Hand-rolling the body from memory instead of reading `references/pr-template.md`, which drifts from the house Testing/Screenshots structure over time.
-- Leaving an empty section heading (for example an unused Screenshots block) instead of deleting it, which reads as unfinished rather than a deliberate skip.
+- Hand-rolling the body from memory instead of reading `references/pr-template.md`, which drifts back toward the old multi-section format over time.
+- Re-adding the old `## Summary` / `## Testing` / `## Screenshots` headings out of habit. The body carries no headings at all now.
+- Treating the dropped Testing block as permission to skip verification: lint, build, and scoped tests still run fresh, they are just reported in chat instead of in the body.
+- Padding the summary into a file-by-file diff restatement. It states intent and behavior, and stops.
+- Writing the summary as one dense paragraph. Bullets are the default shape; prose is the exception for a single-idea change.
+- Letting a bullet run to three lines or nest sub-bullets. One line per bullet, flat list.

@@ -1,96 +1,31 @@
-# Ticket templates
+# Ticket template
 
 Read this when actually drafting a ticket. Token values (`TICKET_PREFIX`, `TRACKER`,
-`TRACKER_BROWSE_URL`, `LINT_CMD`, `UNIT_TEST_CMD`, `E2E_TEST_CMD`, `BUILD_CMD`, `WEB_UI`) come from
-`.claude/harness/profile.md`. Every ticket is INVEST, names a persona, carries 3 to 5 testable
-acceptance criteria, has a terse `<Area>:` title, and a REQUIRED Out-of-scope section. No em dashes.
+`TRACKER_BROWSE_URL`) come from `.claude/harness/profile.md`. No em dashes.
 
-## Template A: Story / Feature / Epic
+The body is deliberately minimal: a compact summary of what should change and why. Nothing else. No
+section headings, no user-story formula, no acceptance-criteria list, no Out-of-scope block, no
+implementation notes, no verification gate. One template covers stories, bugs, and refactors; the
+type field and the title carry the distinction.
+
+## Template
 ```markdown
-TYPE: Story (or Feature/Epic) · PARENT EPIC: <TICKET-KEY> (if any)
-TITLE: <Area>: <imperative outcome>
+TYPE: Story | Bug | Task (Refactor) | Spike · PARENT: <TICKET-KEY> (if any)
+TITLE: <Area>: <imperative outcome, or the symptom in one line for a bug>
 
-## User story
-As <persona>, I want <capability> so that <value>.
-
-## Context / why now
-<1 to 3 sentences. Link the source of truth (design link, parent epic, data).>
-
-## Acceptance criteria  (3 to 5, each testable)
-- [ ] Given <state>, when <action>, then <observable outcome>.
-- [ ] ...
-
-## Out-of-scope  (REQUIRED)
-- <what this ticket explicitly does NOT do; name the follow-up ticket if deferred>
-
-## Implementation notes  (optional)
-- Name precise file/symbol targets where known. Cite the precedent pattern to mirror.
-
-## Verification gate
-- [ ] `<LINT_CMD>`
-- [ ] `<UNIT_TEST_CMD>` expected green NNN/NNN
-- [ ] `<E2E_TEST_CMD> <change-scoped/path>`  (if the project has E2E)
-- [ ] `<BUILD_CMD>` ONLY if build/export behavior changes
+<!-- What should change and why, readable by someone who has not seen the code: 1 to 4 sentences, or
+up to 4 bullets when the change has genuinely separate parts. Bugs: name the reproduction and the
+wrong behavior in the same prose. Refactors: say it is behavior-preserving in the same prose. Link
+the source of truth inline (design link, spec page, parent epic) rather than in a section. -->
 ```
 
-## Template B: Bug
-```markdown
-TYPE: Bug · PARENT EPIC: <TICKET-KEY> (if any)
-TITLE: <Area>: <symptom in one line>
+## Definition of Ready
+The summary says what should change and why, names the type and parent, links the source of truth if
+there is one, and reads without the code. No em dashes. Tracker key and links resolve.
 
-## Steps to reproduce
-1. ...
-## Expected vs actual
-- Expected: ...
-- Actual: ...
-## Root cause  (if known)
-<name the regressing commit/PR via git blame, File:Line>
-
-## Acceptance criteria  (3 to 5, each testable)
-- [ ] The reproduction above no longer occurs.
-- [ ] A regression test fails without the fix and passes with it (name the spec).
-
-## Out-of-scope  (REQUIRED)
-- <related defects deliberately not addressed here>
-
-## Verification gate
-- [ ] `<LINT_CMD>`
-- [ ] `<UNIT_TEST_CMD>` (regression spec named, red->green)
-- [ ] `<E2E_TEST_CMD> <scoped/path>`  (if applicable)
-```
-
-## Template C: Refactor / Tech-debt / Spike
-```markdown
-TYPE: Task (Refactor) or Spike · PARENT EPIC: <TICKET-KEY> (if any)
-TITLE: <Area>: <imperative, e.g. "extract X", "spike: evaluate Y">
-
-## Goal
-<the internal improvement; for a Spike, the question to answer and the timebox>
-
-## No behavior change  (refactors)
-- State it explicitly: output stays byte-identical; characterization-covered.
-
-## Plan  (characterization-first)
-1. Pin existing behavior with characterization tests; get them green FIRST.
-2. Refactor.
-3. Migrate-then-delete: introduce the new path, migrate call sites, then a grep gate proves the old
-   path has zero references before deletion (`grep -rn "<oldSymbol>" <src>` returns nothing).
-
-## Acceptance criteria  (3 to 5, each testable)
-- [ ] Characterization tests green before and after.
-- [ ] `grep -rn "<oldSymbol>"` returns no production references after migration.
-
-## Out-of-scope  (REQUIRED)
-- <adjacent cleanups deliberately not bundled in>
-
-## Verification gate
-- [ ] `<LINT_CMD>`
-- [ ] `<UNIT_TEST_CMD>` green NNN/NNN
-- [ ] `<BUILD_CMD>` ONLY if build/export behavior changed
-```
-
-## Web / UI projects only  (when WEB_UI is true)
-Add to AC and notes: precise component/file targets and path aliases; design-system primitive usage
-and any wrapper-over-raw-library convention; analytics event naming convention and limits; design-tool
-deep links (cite the exact frame and node IDs, not the whole file); known framework gotchas. Omit this
-whole block for non-UI repos (services, libraries, CLIs).
+## Deliberately skipped (do not re-add)
+Section headings of any kind; the "As <persona>, I want ... so that ..." formula; an
+acceptance-criteria checklist; a REQUIRED Out-of-scope block; steps-to-reproduce and expected-versus-
+actual headings (state it in the prose instead); a characterization-first plan block; a
+migrate-then-delete grep-gate block; a verification gate listing lint/test/build commands (those still
+run when the work is done, they are just not restated in the ticket); the web/UI extras block.

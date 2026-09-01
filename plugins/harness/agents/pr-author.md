@@ -34,17 +34,15 @@ it.
 2. Inspect the change: `git diff`, `git diff --stat`, `git log --oneline <base>..HEAD`, and read
    touched files as needed to describe intent (not a file-by-file restatement).
 3. Draft the title (`<type>: <TICKET-KEY> <summary>`, per the profile's ticket prefix and commit
-   types) and the body to the template. Delete every section that does not apply. Fill Testing with the
-   actual commands from the profile plus the red->green / characterization proof line; if results are
-   unknown, mark them as to-run rather than inventing them.
+   types) and the body to the template: the tracker close line plus a compact what-changed-and-why
+   summary, and nothing else. No headings, no Testing block, no screenshots table.
 4. Self-check against the skill's pre-submit checklist, especially: NO em dashes anywhere, the
-   tracker-close line present (or `Fixes #<n>` when there is no tracker), breaking-changes stated, no
-   `Co-Authored-By`, no `--reviewer`.
+   tracker-close line present (or `Fixes #<n>` when there is no tracker), body carries nothing beyond
+   the close line and the summary, no `Co-Authored-By`, no `--reviewer`.
 
 ## Output
-Return two clearly labeled blocks: TITLE (one line) and BODY (markdown). Note any section you dropped
-and why, and any field the main loop must fill (ticket number, test counts, screenshots). Recommend, do
-not run git.
+Return two clearly labeled blocks: TITLE (one line) and BODY (markdown). Note any field the main loop
+must fill (ticket number). Recommend, do not run git.
 
 ## Boundaries (defer to other agents)
 - Whether the code is correct or adequately tested: use developer-reviewer.
