@@ -47,7 +47,7 @@ Reject if ANY hold:
 ## Dedup rule (Step 4)
 
 Mirror the global CLAUDE.md Memory rule. Before proposing any new file:
-- Grep the memory store (`~/.claude/memory/` and project `.claude/memory/`) and read `MEMORY.md`.
+- Grep the auto-loaded store (`~/.claude/projects/<cwd-slug>/memory/`) and read its `MEMORY.md`.
 - If an existing fact covers the learning, propose an update-in-place to that file, never a
   duplicate.
 - Only propose a new one-fact-per-file when nothing existing covers it, and include the matching
@@ -57,7 +57,7 @@ Mirror the global CLAUDE.md Memory rule. Before proposing any new file:
 
 ```
 ### Proposal <n>: <short title>
-- Destination: <exact installed file path, e.g. ~/.claude/memory/<slug>.md, ~/.claude/CLAUDE.md, or plugins/.../SKILL.md>
+- Destination: <exact installed file path, e.g. ~/.claude/projects/<cwd-slug>/memory/<slug>.md, ~/.claude/CLAUDE.md, or plugins/.../SKILL.md>
 - Route: memory fact | CLAUDE.md rule line | skill Gotcha
 - Scope: global | project
 - Proposed text (verbatim, em-dash-free):

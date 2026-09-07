@@ -8,12 +8,18 @@
       "Workflow"
     ],
     "deny": [
-      "Bash(curl *)",
-      "Read(./.env)",
-      "Read(./.env.*)",
-      "Read(./secrets/**)",
-      "Read(./*.pem)",
-      "Read(./*.key)"
+      "Read(//**/.env)",
+      "Read(//**/.env.*)",
+      "Read(//**/secrets/**)",
+      "Read(//**/*.pem)",
+      "Read(//**/*.key)",
+      "Read(//**/*.p12)",
+      "Read(//**/.netrc)",
+      "Read(//**/id_rsa*)",
+      "Read(//**/id_ed25519*)",
+      "Read(//**/.aws/credentials)",
+      "Read(~/.ssh/id_*)",
+      "Read(~/.ssh/*_key)"
     ]
   },
   "attribution": {
@@ -22,11 +28,8 @@
   },
   "skipWorkflowUsageWarning": true,
   "_personalPrefs": {
-    "_comment": "Keys under _personalPrefs are applied at top level by install.sh ONLY when run without --no-prefs. They are personal-global preferences, not portable defaults.",
-    "model": "opus[1m]",
-    "effortLevel": "xhigh",
+    "_comment": "Keys under _personalPrefs are applied at top level by install.sh ONLY when run without --no-prefs. They are personal-global preferences, not portable defaults. Model and effort are deliberately absent: the /model and /effort pickers own those keys, and listing them here made a plain reinstall silently revert an in-session choice.",
     "theme": "dark",
-    "tui": "fullscreen",
-    "fallbackModel": ["sonnet"]
+    "tui": "fullscreen"
   }
 }

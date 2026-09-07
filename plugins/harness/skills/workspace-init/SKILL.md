@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 # /workspace-init: harness a multi-repo workspace
 
-Bootstrap or refresh navigation for a workspace ROOT whose immediate children are independent git repositories. This skill is a recipe, not an engine: the main loop plans, delegates, and gates. Read-only scan agents fan out concurrently; exactly one sequential executor agent per repo writes files. Do not build a coordinator, daemon, message bus, or worktree fan-out.
+Bootstrap or refresh navigation for a workspace ROOT whose immediate children are independent git repositories. This skill is a recipe, not an engine: the main loop plans, delegates, and gates. Read-only scan agents fan out concurrently; exactly one sequential executor agent per repo writes files. Do not build a coordinator, daemon, message bus, or worktree fan-out. Invoking this skill by name is the explicit in-the-moment opt-in the global single-main-loop rule requires; it licenses the fan-out described below and nothing else.
 
 This skill produces WORKSPACE-LEVEL artifacts. It complements the single-repo `harness-init` skill, which produces REPO-LEVEL artifacts inside one repo. Where a child repo already has its own `AGENTS.md`/`CLAUDE.md`, treat that as authoritative for the repo and only summarize it here; never overwrite a repo's internal files.
 
@@ -31,7 +31,7 @@ Use Glob/Bash-free discovery: `Glob` for `*/` at the root, then for each child r
 
 ## Phase 2: parallel deep scan (delegate, read-only)
 Dispatch one read-only scan agent per repo, concurrently within this gate, using the Agent tool.
-- Model: `sonnet` for each scan agent (one per repo). Use `haiku` only for a trivial repo (placeholder, near-empty, or a vendored fork you will black-box).
+- Effort: default effort for each scan agent (one per repo). Drop to low effort only for a trivial repo (placeholder, near-empty, or a vendored fork you will black-box). Never pin a per-agent model.
 - Each agent is instructed: do not recurse vendored/huge trees; for a vendored fork return only a black-box summary (what it is, upstream, where fork-local deltas would live) plus the consumer-side integration points. Return a CONDENSED digest, not a file dump.
 - Digest contract per repo: `{ slug, one_liner, category, stack, coreLogic[], stateData[], entrypoints[], riskZones[], strictPatterns[], verify{test,lint,build,e2e}, docs[], trackerPrefix?, flags[] }`. Every path an agent cites must be one it actually read.
 - Record low-confidence inferences explicitly in an `ASSUMPTIONS` list on the digest rather than guessing silently.
@@ -50,10 +50,10 @@ From the digests, group repos into platform clusters by detected stack/platform 
   "trackerPrefixes": { "<PREFIX>": "<domain>" }
 }
 ```
-This file is the single parameter source refresh-seams reads later. If a run is judgment-heavy (ambiguous cluster boundaries, many bridge repos), consult one `opus` advisor agent for the cluster taxonomy only; otherwise the main loop decides. Membership is derived FROM the catalog, never hardcoded.
+This file is the single parameter source refresh-seams reads later. If a run is judgment-heavy (ambiguous cluster boundaries, many bridge repos), consult one high-effort advisor agent for the cluster taxonomy only; otherwise the main loop decides. Membership is derived FROM the catalog, never hardcoded.
 
 ## Phase 4: write per-repo deep indexes (delegate, one executor per repo)
-For each in-scope repo, dispatch ONE sequential executor agent (`model: sonnet`) that writes `.claude/repo-index/<repo>.md` from this skill's `assets/rule.md.tmpl` (or its workspace-local override, see Template resolution), filled from that repo's digest. The file MUST open with bare YAML frontmatter starting at byte 0, no HTML-comment wrapper (targets documents scope for tooling; there is no central registry):
+For each in-scope repo, dispatch ONE sequential executor agent that writes `.claude/repo-index/<repo>.md` from this skill's `assets/rule.md.tmpl` (or its workspace-local override, see Template resolution), filled from that repo's digest. The file MUST open with bare YAML frontmatter starting at byte 0, no HTML-comment wrapper (targets documents scope for tooling; there is no central registry):
 ```
 ---
 id: <repo>-deep-index
@@ -66,7 +66,7 @@ Body follows the four-section template: Domain Component Mapping (Core Logic / S
 Executors run one repo at a time (sequential) so file writes never collide; the scan fan-out in Phase 2 was the only concurrent step.
 
 ## Phase 5: write the workspace router and navigation (delegate, single executor)
-Dispatch one executor agent (`model: sonnet`) to write:
+Dispatch one executor agent to write:
 - `CLAUDE.md` from this skill's `assets/workspace-CLAUDE.md.tmpl` (or its workspace-local override): Section 1 System Topology (core daily-drivers callout plus full catalog grouped by category header, one bold-name bullet and one sentence each, vendored tagged, trailing Not-indexed line); Section 2 Structural Routing Triggers (topic to path, daily-drivers only); Section 3 Search and Grep Optimization (file patterns, legacy dirs, deny rules, never-grep-recurse list, non-code zones); Section 4 Deep Index Pointers (the `.claude/repo-index/<repo>.md` convention, read-on-demand note, tracker-prefix table); Section 5 Deeper navigation (pointers only).
 - `.claude/meta/navigation.md` from this skill's `assets/navigation.md.tmpl` (or its workspace-local override): Doc Map, Agent Instruction Hierarchy (global to workspace to repo to subscope to task-prompt, narrower wins), and a Key skills line that names `workspace-init` and `refresh-seams`.
 
@@ -76,7 +76,7 @@ Keep catalog one-liners to a single sentence each; favor density over prose.
 On `--refresh`, regenerate all artifacts but preserve human content: the root CLAUDE.md and navigation.md are fully regenerated (they are ours); per-repo rules files are regenerated body-and-frontmatter, but if refresh-seams has already written a `## Cross-repo seams` section between `<!-- seams:start -->` / `<!-- seams:end -->`, leave that block verbatim. Never touch a child repo's own `AGENTS.md`/`CLAUDE.md`.
 
 ## Phase 7: self-verify gate (haiku sweep + main-loop check)
-Delegate a mechanical `haiku` agent to run the SAME deterministic core `harness-init` bundles, `plugins/harness/skills/harness-init/assets/verify-generated.sh` (reference it, never ship a second copy, a duplicate re-introduces the drift the shared script removes), over `CLAUDE.md`, `.claude/meta/navigation.md`, and each `.claude/repo-index/<repo>.md`: it test-e's every backtick path, sweeps for the em-dash U+2014, and checks harness-marker balance, printing a `RESULT` line. On top of the script's output, the agent still confirms in prose that every generated rules file has valid frontmatter and that its `targets` glob starts with its own slug (a judgment check the script does not make). The main loop fixes or drops anything flagged before reporting. Then remind the user that `refresh-seams` can now build the cross-repo integration map from the cluster config just written.
+Delegate a mechanical low-effort agent to run the SAME deterministic core `harness-init` bundles, `~/.claude/skills/harness-init/assets/verify-generated.sh` (reference it, never ship a second copy, a duplicate re-introduces the drift the shared script removes), over `CLAUDE.md`, `.claude/meta/navigation.md`, and each `.claude/repo-index/<repo>.md`: it test-e's every backtick path, sweeps for the em-dash U+2014, and checks harness-marker balance, printing a `RESULT` line. On top of the script's output, the agent still confirms in prose that every generated rules file has valid frontmatter and that its `targets` glob starts with its own slug (a judgment check the script does not make). The main loop fixes or drops anything flagged before reporting. Then remind the user that `refresh-seams` can now build the cross-repo integration map from the cluster config just written.
 
 ## Report
 List repos cataloged (by category), deep indexes written, the derived clusters and their members, non-indexed dirs, any recorded ASSUMPTIONS, and any self-verify fixes.

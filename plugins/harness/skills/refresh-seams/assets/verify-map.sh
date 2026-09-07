@@ -56,6 +56,9 @@ if [ -f "$MAP" ]; then
       */*) : ;;
       *) continue ;;
     esac
+    # Only workspace-root-relative paths are checkable: the first segment must be a real top-level
+    # dir. This skips repo-relative fragments and slash-command names like /refresh-seams.
+    [ -d "${tok%%/*}" ] || continue
     if [ -e "$tok" ]; then
       verified=$((verified + 1))
     else

@@ -1,6 +1,6 @@
 ---
 name: pr
-description: Write or draft a minimal GitHub PR description: a tracker close line plus a compact summary of what changed and why, and nothing else (no headings, no Testing block, no screenshots table). Project tokens (repo, tracker prefix, verify commands) are read from .claude/harness/profile.md. Use when running gh pr create / gh pr edit or when asked to write a PR description/body.
+description: Write or draft a minimal GitHub PR description: a linked tracker close line plus 3 to 6 one-line bullets of what changed and why, and nothing else (no headings, no Testing block, no screenshots table). Project tokens (repo, tracker prefix, verify commands) are read from .claude/harness/profile.md. Use when running gh pr create / gh pr edit or when asked to write a PR description/body.
 argument-hint: "[ticket key, or blank to infer from branch]"
 allowed-tools: Read, Grep, Glob, Bash
 ---
@@ -9,7 +9,7 @@ allowed-tools: Read, Grep, Glob, Bash
 
 First, load `.claude/harness/profile.md` for this project's tokens (`REPO`, `TICKET_PREFIX`,
 `TRACKER_BROWSE_URL`, `TRACKER_CLOSE_KEYWORD`, `DEFAULT_BRANCH`, `COMMIT_TYPES`, `LINT_CMD`,
-`UNIT_TEST_CMD`, `E2E_TEST_CMD`, `BUILD_CMD`, `WEB_UI`). If no profile exists, infer from the repo
+`UNIT_TEST_CMD`, `E2E_TEST_CMD`, `BUILD_CMD`). If no profile exists, infer from the repo
 (run `/harness-init` to create one) and proceed; if there is no tracker, use GitHub `Fixes #<n>` and
 drop the tracker-close line.
 
@@ -25,9 +25,16 @@ The body is a tracker close line plus a compact summary of what changed and why.
 section headings, no Testing block, no Screenshots table, no breaking-changes assertion, no
 notes-for-review.
 
-Default to bullets, not a paragraph: 2 to 4 short bullets, one line each, each naming a change and
+Bullets are the shape, not a paragraph: 3 to 6 short bullets, one line each, each naming a change and
 its why. Fall back to a single sentence only when the change is genuinely one idea and a lone bullet
 would look odd. Never a wall of prose, and never a file-by-file restatement.
+
+The close line is a link: `<TRACKER_CLOSE_KEYWORD> [<TICKET-KEY>](<TRACKER_BROWSE_URL><TICKET-KEY>).`
+When there is no ticket, open the body with the source thread as a link instead. When the work came
+from someone's report, close the body with `Reported by <name> in [#channel](<url>).`
+
+A body describes the head it is on. Whenever a commit lands, the scope moves, or review
+feedback lands, reconcile the body in the same step rather than leaving it describing an older head.
 
 The exact template, the pre-submit checklist, and the deliberately-skipped list live in
 `references/pr-template.md` (in this skill's directory). Read that file when actually authoring, and
@@ -54,3 +61,6 @@ Apply via `gh pr create --draft` (title via `--title`, body via `--body` or `--b
 - Padding the summary into a file-by-file diff restatement. It states intent and behavior, and stops.
 - Writing the summary as one dense paragraph. Bullets are the default shape; prose is the exception for a single-idea change.
 - Letting a bullet run to three lines or nest sub-bullets. One line per bullet, flat list.
+- Leaving the body describing an earlier head after a new commit, a scope change, or a review fix. Reconcile it in the same step; being asked "is the PR body up to date" means it already drifted.
+- Dropping the reporter attribution when the work came from a colleague's thread, or burying the source link mid-paragraph instead of the top (no ticket) or the foot (reporter).
+- Padding to the bullet floor. Three is the floor for a normal change, not a quota to invent filler for a genuinely single-idea fix.

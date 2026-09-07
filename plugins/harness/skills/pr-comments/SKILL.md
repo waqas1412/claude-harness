@@ -41,13 +41,25 @@ triaged, but a human reviewer's thread is the one with a person's time attached 
 Also check top-level PR comments, which are not review threads:
 `gh pr view <N> --json comments --jq '.comments[] | {a:.author.login, b:.body}'`
 
-## Step 2: classify each thread before touching code
+## Step 2: ground every claim before classifying it
 
-Per thread, decide and write down one of:
+Review feedback is a claim to verify, not an instruction to obey. Agreeing is as much a decision as
+disagreeing, and it needs the same evidence. Before writing down a verdict, check the claim against the
+grounds that can settle it: the INSTALLED library source in `node_modules` at the version this repo
+pins, the version-matched official docs, real-world discussion of the same failure (the high-signal
+Stack Overflow thread or upstream issue), and the repo's own gotchas and prior decisions. A reviewer's
+suggested FIX gets the same treatment as their diagnosis: the diagnosis can be right while the proposed
+remedy is wrong, so where the mechanism is subtle (effect ordering, layout timing, framework
+internals), pin it with a failing test before you write the fix, not after.
 
-- **Agree.** The reviewer is right. Fix it.
+Per thread, decide and write down one of, with the evidence next to it:
+
+- **Agree.** The reviewer is right, and the grounds say so. Fix it.
 - **Disagree.** Needs a cited justification, not an opinion.
 - **Out of scope.** Real, but not this ticket. Say so, offer to file it, resolve.
+
+Never agree out of deference, and never agree just because a bot sounds confident. An unverified
+"good catch" buys a wrong change plus another review round.
 
 ## Step 3: scope the fix to THIS diff
 
@@ -70,8 +82,8 @@ If the source does not actually support the disagreement, you agreed and did not
 
 Run `LINT_CMD`, `BUILD_CMD`, and the change-related tests fresh, and paste the real output. Then
 confirm `git branch --show-current` as its own step, commit the fix on top, and push normally. Do not
-amend and force-push to keep the branch at one commit, and never rename the branch.
-Anything about the PR's base branch belongs to `/sync-prs`, not here.
+amend and force-push to keep the branch at one commit, and never rename the branch. Anything about the
+PR's base branch belongs to `/sync-prs`, not here.
 
 ## Step 6: draft every reply, get approval, then post
 
@@ -107,6 +119,7 @@ One row per thread: reviewer, path and line, agree or disagree or out of scope, 
   `addPullRequestReviewThreadReply` does that, and it needs the `PRRT_...` id from step 1.
 - An `isOutdated` thread still needs a reply and a resolve. Outdated means the line moved, not that
   the point was answered.
+- Agreeing without grounding, on the assumption the reviewer read more carefully than you. Verify first: a plausible-sounding claim about framework internals is often wrong, and a correct diagnosis often ships with an incorrect suggested fix.
 - Do not claim a fix you have not run. A reply written ahead of the verification is how a wrong claim
   reaches a reviewer.
 - When the PR belongs to someone else, the mode is different: flag defects for the author to decide,

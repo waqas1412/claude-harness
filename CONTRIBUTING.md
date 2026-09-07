@@ -27,4 +27,6 @@ Requires `jq` (and `shellcheck` for the full lint; the validator falls back to s
 - **Versioning:** `VERSION` is the source of truth. Run `./scripts/bump-version.sh <x.y.z>` to sync
   the manifests, commit, then `git tag v<x.y.z>`. The validator fails if the three versions drift.
 - **No em dashes** in authored markdown (a hook enforces this); `MEMORY.md` is the one exemption.
-- **One commit per PR.** Fold review fixes in via amend plus force-with-lease.
+- **Add review fixes as new commits** and push normally. Do not amend and force-push an already-pushed
+  branch to keep it at one commit. Force-push stays fine where it is inherent, such as a rebase onto a
+  moved base.

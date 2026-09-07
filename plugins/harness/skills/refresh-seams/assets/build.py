@@ -19,7 +19,7 @@ CFG = json.loads((HERE / "clusters.json").read_text())
 
 SEAMS_ROOT = Path(os.environ.get("SEAMS_ROOT", CFG["root"])).resolve()
 DATE = os.environ.get("SEAMS_DATE", "")
-RULES_DIR = SEAMS_ROOT / ".claude" / "rules"
+RULES_DIR = SEAMS_ROOT / Path(CFG.get("rulesFileConvention", ".claude/repo-index/<repo>.md")).parent
 META_DIR = SEAMS_ROOT / ".claude" / "meta"
 SEAMS_HARNESS_DIR = SEAMS_ROOT / ".claude" / "harness" / "seams"
 
@@ -227,11 +227,12 @@ def main():
         lines.append("")
     (SEAMS_HARNESS_DIR / "adjacency.txt").write_text("\n".join(lines))
 
-    rewrite_rules(kept, repos)
+    written, pruned = rewrite_rules(kept, repos)
 
     print("edges={} verified={} files_ok={} repos={} externals={}".format(
         doc["stats"]["edges"], doc["stats"]["verified"], doc["stats"]["files_ok"],
         doc["stats"]["repos"], doc["stats"]["externals"]))
+    print("rules_written={} rules_pruned={}".format(written, pruned))
 
 
 def rules_file_for(repo):
@@ -261,6 +262,7 @@ def seam_block(repo, edges):
 
 
 def rewrite_rules(edges, repos):
+    written = 0
     for repo in repos:
         f = rules_file_for(repo)
         if not f:
@@ -274,6 +276,27 @@ def rewrite_rules(edges, repos):
         else:
             new = text.rstrip("\n") + "\n\n" + block
         f.write_text(new)
+        written += 1
+    return written, prune_rules(repos)
+
+
+def prune_rules(repos):
+    """prune_rules drops a seam block left behind by a repo that now has zero edges."""
+    connected = {r.lower() for r in repos}
+    pruned = 0
+    if not RULES_DIR.exists():
+        return pruned
+    for f in RULES_DIR.glob("*.md"):
+        if f.stem.lower() in connected or ".bak" in f.name:
+            continue
+        text = f.read_text()
+        if MARK_START not in text or MARK_END not in text:
+            continue
+        pre = text.split(MARK_START)[0].rstrip("\n")
+        post = text.split(MARK_END)[1].lstrip("\n")
+        f.write_text(pre + "\n" + ("\n" + post if post else ""))
+        pruned += 1
+    return pruned
 
 
 if __name__ == "__main__":

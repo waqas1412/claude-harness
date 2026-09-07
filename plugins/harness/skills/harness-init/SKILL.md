@@ -87,7 +87,6 @@ read. Keep it terse and machine-readable.
 - UNIT_TEST_CMD: {{per area}}
 - E2E_TEST_CMD: {{per area or none}}
 - BUILD_CMD: {{per area}}
-- WEB_UI: {{true|false}} (enables design-system/analytics sections in /ticket)
 - SETUP_QUIRKS: {{required env vars, version-manager pins, a mandatory bootstrap command; empty if none}}
 - ASSUMPTIONS: {{anything inferred with low confidence, for the user to correct}}
 <!-- harness:end -->
@@ -197,8 +196,9 @@ not scatter state files into the repo root. Record a commit-vs-gitignore decisio
 
 Prove the no-invented-paths contract mechanically before reporting. Run the bundled deterministic
 core, then apply the judgment-bearing checks yourself:
-- From the repo root, run this skill's `assets/verify-generated.sh` over the generated files, for
-  example `sh assets/verify-generated.sh CLAUDE.md .claude/repo-index/*.md`. It test-e's every
+- From the repo root, run the installed `~/.claude/skills/harness-init/assets/verify-generated.sh`
+  over the generated files, for example
+  `sh ~/.claude/skills/harness-init/assets/verify-generated.sh CLAUDE.md .claude/repo-index/*.md`. It test-e's every
   backtick-quoted path, sweeps for the em-dash U+2014, and checks per-file harness-marker balance,
   printing one `RESULT ... verified=N missing=N emdash=N markers_unbalanced=N` line. Remove or
   correct anything it flags, then re-run until it prints `RESULT pass`.

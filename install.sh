@@ -124,7 +124,7 @@ merge_settings() {
   jq --argjson prefs "$WITH_PREFS" '
     . as $f
     | ($f | del(._personalPrefs)) as $base
-    | (if ($prefs == 1) then ($f._personalPrefs | del(._comment)) else {} end) as $p
+    | (if ($prefs == 1) then ($f._personalPrefs | with_entries(select(.key | startswith("_") | not))) else {} end) as $p
     | $base * $p
   ' "$frag" > "$overlay"
 
@@ -221,14 +221,9 @@ install_capabilities() {
 
   if [ "$WITH_MEMORY" = 1 ] && [ "$WITH_GLOBAL" = 1 ]; then
     head "Memory store"
-    local mem="$CLAUDE_HOME/memory"; mkdir -p "$mem"
-    [ -d "$CLAUDE_HOME/memory-seed" ] && { rm -rf "$CLAUDE_HOME/memory-seed"; note "removed legacy memory-seed/ (migrated to memory/)"; } || true
-    for f in "$SRC"/global/memory/*.md; do
-      [ -e "$f" ] || continue
-      local base; base="$(basename "$f")"
-      [ -f "$mem/$base" ] || copy_file "$f" "$mem/$base"
-    done
-    note "memory store at $mem (existing facts preserved; convention is in CLAUDE.md)"
+    [ -d "$CLAUDE_HOME/memory-seed" ] && { rm -rf "$CLAUDE_HOME/memory-seed"; note "removed legacy memory-seed/"; } || true
+    note "the auto-loaded store is $CLAUDE_HOME/projects/<cwd-slug>/memory, created by Claude on first write"
+    note "starter facts stay in $SRC/global/memory (copy them into a store by hand; convention is in CLAUDE.md)"
   else
     note "memory seeding skipped"
   fi
@@ -307,21 +302,34 @@ do_check() {
 
   # memory store + bidirectional pointer integrity: every fact file is listed in MEMORY.md, and
   # every MEMORY.md link resolves to a real file. Any inconsistency fails --check.
-  if [ -d "$CLAUDE_HOME/memory" ]; then
-    note "memory store present"
-    local idx="$CLAUDE_HOME/memory/MEMORY.md" orphan=0 mf ptr
-    if [ -f "$idx" ]; then
-      for mf in "$CLAUDE_HOME"/memory/*.md; do
-        [ -e "$mf" ] || continue
-        [ "$(basename "$mf")" = "MEMORY.md" ] && continue
-        grep -qF "$(basename "$mf")" "$idx" || { note "memory: $(basename "$mf") has no MEMORY.md pointer"; orphan=1; }
-      done
-      for ptr in $(grep -oE '\]\([^)]+\.md\)' "$idx" | sed -E 's/^\]\(//; s/\)$//'); do
-        [ -f "$CLAUDE_HOME/memory/$ptr" ] || { note "memory: MEMORY.md points to missing $ptr"; orphan=1; }
-      done
-      [ "$orphan" = 0 ] && note "memory: pointers consistent" || ok=0
+  local store idx slug orphan=0 found=0 mf ptr
+  for store in "$CLAUDE_HOME"/projects/*/memory; do
+    [ -d "$store" ] || continue
+    found=1; slug="$(basename "$(dirname "$store")")"; idx="$store/MEMORY.md"
+    if [ ! -f "$idx" ]; then
+      if [ -n "$(ls -1 "$store"/*.md 2>/dev/null)" ]; then
+        note "memory[$slug]: facts present but no MEMORY.md index"; orphan=1
+      else
+        note "memory[$slug]: empty"
+      fi
+      continue
     fi
+    for mf in "$store"/*.md; do
+      [ -e "$mf" ] || continue
+      [ "$(basename "$mf")" = "MEMORY.md" ] && continue
+      grep -qF "$(basename "$mf")" "$idx" || { note "memory[$slug]: $(basename "$mf") has no MEMORY.md pointer"; orphan=1; }
+    done
+    for ptr in $(grep -oE '\]\([^)]+\.md\)' "$idx" | sed -E 's/^\]\(//; s/\)$//'); do
+      [ -f "$store/$ptr" ] || { note "memory[$slug]: MEMORY.md points to missing $ptr"; orphan=1; }
+    done
+    note "memory[$slug]: $(ls -1 "$store"/*.md 2>/dev/null | wc -l | tr -d ' ') files"
+  done
+  if [ "$found" = 1 ]; then
+    [ "$orphan" = 0 ] && note "memory: pointers consistent in every workspace store" || ok=0
+  else
+    note "memory: no workspace store yet at $CLAUDE_HOME/projects/<cwd-slug>/memory"
   fi
+  [ -d "$CLAUDE_HOME/memory" ] && note "note: $CLAUDE_HOME/memory is a legacy path that no session loads" || true
 
   [ "$ok" = 1 ] && { echo; echo "OK: install looks healthy."; } || { echo; echo "PROBLEMS found (see above)."; exit 1; }
 }

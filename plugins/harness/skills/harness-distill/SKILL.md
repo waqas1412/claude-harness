@@ -11,7 +11,7 @@ A recipe, not an engine. It closes the harness's one-directional gap: learnings 
 are otherwise captured only by hand. It carries no `Write`/`Edit` tool, so it is structurally
 propose-only: the brain plans and delegates, read-only advisors fan out, and every survivor is
 emitted as a proposal for your approval, never a silent mutation. On-demand only; there is no
-scheduler. The verbose rubric, skeptic prompt, dedup rule, and proposal template live in
+scheduler. Invoking this skill by name is the explicit in-the-moment opt-in the global single-main-loop rule requires; it licenses the fan-out described below and nothing else. The verbose rubric, skeptic prompt, dedup rule, and proposal template live in
 `references/distill-pipeline.md`, opened when a step needs them.
 
 ## Scope discipline
@@ -19,8 +19,8 @@ scheduler. The verbose rubric, skeptic prompt, dedup rule, and proposal template
 This is a prose choreography over native subagent dispatch, like `/orchestrate`. Do not build a
 coordinator, daemon, message bus, or scheduler. Default to a tight bounded slice (the current
 session plus a small recent window for this repo) because mining transcripts is token-heavy; the
-user can widen via the argument. Pin models explicitly and do not over-tier: haiku for batch
-extraction, sonnet for clustering, opus for the skeptic pass. No fable.
+user can widen via the argument. Use effort, not model tiers: low effort for batch extraction and
+clustering, high effort for the skeptic pass. Never pin a per-agent model.
 
 ## Step 1: Scope and gather (read-only)
 
@@ -34,12 +34,12 @@ heuristics in `references/distill-pipeline.md`.
 
 ## Step 2: Cluster (sonnet, parallel)
 
-Fan out sonnet agents to group the raw candidates by theme in one pass. Recurrence across two or
+Fan out agents to group the raw candidates by theme in one pass. Recurrence across two or
 more sessions is the signal; a one-off is noise and drops out here.
 
-## Step 3: Adversarially verify (opus skeptic, one per cluster)
+## Step 3: Adversarially verify (one skeptic per cluster)
 
-Dispatch one opus skeptic verifier per surviving cluster (those recurring across 2+ sessions). Each
+Dispatch one skeptic verifier per surviving cluster (those recurring across 2+ sessions). Each
 asks "would this rule have prevented a real mistake?" and must cite session evidence. Promote only
 durable, reusable learnings; reject task-specific noise, transient state, and anything git, the
 repo, or CLAUDE.md already records. This is the false-positive filter. The skeptic prompt and the
