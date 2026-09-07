@@ -108,7 +108,8 @@ per-project profile that `/harness-init` generates at `.claude/harness/profile.m
   via PR title/body instead.
 - PR commits: add review fixes and follow-ups as additional commits and push normally. Do not amend
   and force-push an already-pushed PR branch to keep it at one commit. Force-push stays fine where it
-  is inherent to the operation, such as a rebase onto a moved base.
+  is inherent to the operation, such as a rebase onto a moved base; a hook blocks a bare `--force`, so
+  use `--force-with-lease`.
 
 ## Memory
 

@@ -9,7 +9,9 @@ allowed-tools: Read, Grep, Glob, Bash
 
 First, load `.claude/harness/profile.md` for this project's tokens (`REPO`, `TICKET_PREFIX`,
 `TRACKER_BROWSE_URL`, `TRACKER_CLOSE_KEYWORD`, `DEFAULT_BRANCH`, `COMMIT_TYPES`, `LINT_CMD`,
-`UNIT_TEST_CMD`, `E2E_TEST_CMD`, `BUILD_CMD`). If no profile exists, infer from the repo
+`UNIT_TEST_CMD`, `E2E_TEST_CMD`, `BUILD_CMD`). In a multi-repo profile the four command tokens are
+the per-repo table's Lint / Test / Build / E2E columns for the repo you are in, and `-` there means the
+step genuinely does not exist. If no profile exists, infer from the repo
 (run `/harness-init` to create one) and proceed; if there is no tracker, use GitHub `Fixes #<n>` and
 drop the tracker-close line.
 

@@ -21,7 +21,7 @@ Design for a quality-first user:
   * The original-order (trimmed) body follows the digest. Nothing is fabricated
     or reordered within the body. Assertion detail (expect/received/stack
     frames) is kept as body context around each hard failure.
-  * The full raw log is still persisted by the harness; the note says so.
+  * The trimmed output says so, and names the command to re-run for the full log.
   * Fail-safe: any anomaly (unknown shape, parse error, small output, non-test
     command, or a filter that would not clearly help) prints nothing and exits 0,
     leaving the original result intact. Worst case is "no filtering", never
@@ -140,7 +140,7 @@ def _filter(text):
 
 def _rebuild(field, digest, body):
     lead = ("===== filter-verbose-output: FAILURES + SUMMARY (full raw log "
-            "persisted by the harness; re-run the exact command for everything) =====")
+            "trimmed; re-run the exact command for the full log) =====")
     parts = [lead]
     if digest:
         parts.append("\n".join(digest))
@@ -189,7 +189,7 @@ def main():
                               "crowded out), then run summaries, then warnings, "
                               "then a trimmed in-order log. " +
                               "; ".join(notes) +
-                              ". The full raw log is persisted; re-run the exact "
+                              ". Re-run the exact "
                               "command if you need it."),
     }}))
 
