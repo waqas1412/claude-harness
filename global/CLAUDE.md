@@ -152,6 +152,18 @@ Cross-project, any language. The named file holds the evidence and the concrete 
   path use `/rewind`, which truncates back to a prefix that is still cached, rather than `/compact`, which
   builds a new one. A `/compact` after a long idle gap is the most expensive single action available: the
   summarising request reprocesses the whole history uncached.
+- Chunk the work and keep the coordinator clean. Plan one chunk, approve it with the clear-context option
+  (`showClearContextOnPlanAccept`), hand the building to the `implementer` subagent, verify, then plan the
+  next. The plan file under `~/.claude/plans/` carries the state across the clear, so the reset loses nothing
+  that mattered. This is cheaper AND better: history is re-billed on every later turn, and a long session
+  stops reading its own plan literally and starts filling gaps from memory, where a fresh one reads it from
+  the top. Nothing can clear the conversation for you, no tool and no hook, so the boundary is always yours.
+- Clear when the NEXT chunk needs different files. Two chunks over the same files belong in one context,
+  because a re-read costs the full input rate against a tenth of it cached, roughly ten turns of carrying it.
+- Where the chunks are independent units of the same kind, use a Workflow instead of clearing between them:
+  the script holds the loop and the intermediate results, so they never enter this context at all. A
+  dependent chain that needs sign-off per step stays the plan-and-clear loop, because a run takes no
+  mid-flight input.
 - Editing this file mid-session changes nothing until `/clear`, `/compact` or a restart. Batch guidance edits
   and pick them up on the next fresh session instead of editing repeatedly during a task.
 - Read `/usage` ("Prompt cache (main)") before tuning anything for cost: it gives the hit ratio and a likely
