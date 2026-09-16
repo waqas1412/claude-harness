@@ -174,6 +174,42 @@ run "localrefs: tracker link in pr body passes"     block-local-only-refs.sh 0 '
 run "localrefs: ls of a local path passes"          block-local-only-refs.sh 0 '{"tool_input":{"command":"ls /Users/w/projects/kb"}}'
 run "localrefs: grep naming gh pr create passes"    block-local-only-refs.sh 0 '{"tool_input":{"command":"grep -q \"gh pr create\" /Users/w/.claude/CLAUDE.md"}}'
 
+# block-external-query-leaks: proprietary identifiers must not reach a third party for lookup.
+# Bash scans the whole command, but only when it is really a search call; WebFetch scans the prompt only.
+# Generic tier, always on and portable. No site-specific identifier appears in this repo by design.
+run "queryleak: /Users path in search blocks"       block-external-query-leaks.sh 2 '{"tool_name":"Bash","tool_input":{"command":"curl \"http://localhost:8080/search?q=/Users/w/projects+error&format=json\""}}'
+run "queryleak: kb path in search blocks"           block-external-query-leaks.sh 2 '{"tool_name":"Bash","tool_input":{"command":"curl \"http://localhost:8080/search?q=kb/tickets/x+spec&format=json\""}}'
+run "queryleak: harness path in search blocks"      block-external-query-leaks.sh 2 '{"tool_name":"Bash","tool_input":{"command":"curl \"http://localhost:8080/search?q=.claude/repo-index/a.md&format=json\""}}'
+run "queryleak: generic search passes"              block-external-query-leaks.sh 0 '{"tool_name":"Bash","tool_input":{"command":"curl \"http://localhost:8080/search?q=nextjs+16+pages+router&format=json\""}}'
+# generic repo words are deliberately not markers: they collide with ordinary searches
+run "queryleak: word backend in search passes"      block-external-query-leaks.sh 0 '{"tool_name":"Bash","tool_input":{"command":"curl \"http://localhost:8080/search?q=go+gin+backend+middleware&format=json\""}}'
+# a local path outside a search call is fine: only real search calls are scanned
+run "queryleak: local grep passes"                  block-external-query-leaks.sh 0 '{"tool_name":"Bash","tool_input":{"command":"grep -r x /Users/w/projects/app/src"}}'
+# merely MENTIONING a search url is not a search call: a heredoc, a grep for it, or editing this hook
+run "queryleak: heredoc mentioning search passes"   block-external-query-leaks.sh 0 '{"tool_name":"Bash","tool_input":{"command":"python3 - <<PY\nurl=\"http://localhost:8080/search?q=x&format=json\"  # /Users/w/x\nPY"}}'
+run "queryleak: grep for search url passes"         block-external-query-leaks.sh 0 '{"tool_name":"Bash","tool_input":{"command":"grep -n \"localhost:8080/search\" /Users/w/.claude/CLAUDE.md"}}'
+# but a real call still fires, including behind env prefixes and after a cd
+run "queryleak: env-prefixed curl blocks"           block-external-query-leaks.sh 2 '{"tool_name":"Bash","tool_input":{"command":"FOO=1 curl -sS \"http://localhost:8080/search?q=/Users/w/x&format=json\""}}'
+run "queryleak: curl after cd blocks"               block-external-query-leaks.sh 2 '{"tool_name":"Bash","tool_input":{"command":"cd /tmp && curl -sS \"http://localhost:8080/search?q=kb/tickets/x&format=json\""}}'
+run "queryleak: kb path in fetch prompt blocks"     block-external-query-leaks.sh 2 '{"tool_name":"WebFetch","tool_input":{"url":"https://d.io","prompt":"compare against kb/tickets/x.md"}}'
+run "queryleak: clean fetch prompt passes"          block-external-query-leaks.sh 0 '{"tool_name":"WebFetch","tool_input":{"url":"https://d.io","prompt":"quote the caching section"}}'
+# the url is a destination, not a leak: only the prompt is scanned
+run "queryleak: private url in fetch passes"        block-external-query-leaks.sh 0 '{"tool_name":"WebFetch","tool_input":{"url":"https://acme-internal.example.com/x","prompt":"what does this page say"}}'
+
+# Site tier: markers come from an untracked file, so the mechanism is tested with a synthetic marker.
+QLTMP="$(mktemp -d)"
+printf '# comment ignored\n\nzzsecretproject\n' > "$QLTMP/markers.txt"
+CLAUDE_EGRESS_MARKERS="$QLTMP/markers.txt" \
+  run "queryleak: site marker blocks"               block-external-query-leaks.sh 2 '{"tool_name":"Bash","tool_input":{"command":"curl \"http://localhost:8080/search?q=zzsecretproject+bug&format=json\""}}'
+CLAUDE_EGRESS_MARKERS="$QLTMP/markers.txt" \
+  run "queryleak: non-marker passes with file"      block-external-query-leaks.sh 0 '{"tool_name":"Bash","tool_input":{"command":"curl \"http://localhost:8080/search?q=postgres+index+tuning&format=json\""}}'
+# a missing markers file degrades to the generic tier, it must not brick every search
+CLAUDE_EGRESS_MARKERS="$QLTMP/absent.txt" \
+  run "queryleak: absent markers file passes"       block-external-query-leaks.sh 0 '{"tool_name":"Bash","tool_input":{"command":"curl \"http://localhost:8080/search?q=zzsecretproject&format=json\""}}'
+CLAUDE_EGRESS_MARKERS="$QLTMP/absent.txt" \
+  run "queryleak: generic tier survives no file"    block-external-query-leaks.sh 2 '{"tool_name":"Bash","tool_input":{"command":"curl \"http://localhost:8080/search?q=/Users/w/x&format=json\""}}'
+rm -rf "$QLTMP"
+
 VGTMP="$(mktemp -d)"
 trap 'rm -rf "$VGTMP"' EXIT
 printf 'see `%s` for the wiring\n' "plugins/harness/hooks/hooks.json" > "$VGTMP/good.md"

@@ -149,14 +149,16 @@ merge_settings() {
      --arg fp "sh \"$h/block-force-push.sh\"" \
      --arg md "sh \"$h/block-md-emdash.sh\"" \
      --arg wf "sh \"$h/block-workflow-rules.sh\"" \
-     --arg lr "sh \"$h/block-local-only-refs.sh\"" '
+     --arg lr "sh \"$h/block-local-only-refs.sh\"" \
+     --arg ql "sh \"$h/block-external-query-leaks.sh\"" '
     .hooks //= {} | .hooks.PreToolUse //= []
     # remove any existing harness hook entries (commands referencing /hooks/block-*)
     | .hooks.PreToolUse |= ( map(
         .hooks |= ( (. // []) | map(select((.command // "") | test("/hooks/block-") | not)) )
       ) | map(select((.hooks // []) | length > 0)) )
     | .hooks.PreToolUse += [
-        { "matcher": "Bash", "hooks": [ {"type":"command","command":$co}, {"type":"command","command":$pr}, {"type":"command","command":$fp}, {"type":"command","command":$md}, {"type":"command","command":$wf}, {"type":"command","command":$lr} ] },
+        { "matcher": "Bash", "hooks": [ {"type":"command","command":$co}, {"type":"command","command":$pr}, {"type":"command","command":$fp}, {"type":"command","command":$md}, {"type":"command","command":$wf}, {"type":"command","command":$lr}, {"type":"command","command":$ql} ] },
+        { "matcher": "WebFetch", "hooks": [ {"type":"command","command":$ql} ] },
         { "matcher": "Write|Edit", "hooks": [ {"type":"command","command":$md} ] }
       ]
   ' "$tmp" > "$tmp.h" && mv "$tmp.h" "$tmp"
@@ -218,7 +220,7 @@ install_capabilities() {
       copy_file "$f" "$CLAUDE_HOME/hooks/$(basename "$f")"
       chmod +x "$CLAUDE_HOME/hooks/$(basename "$f")"
     done
-    note "5 hooks: 4 PreToolUse guards (coauthor, pr-reviewer, force-push, md-emdash) + 1 PostToolUse output filter"
+    note "8 hooks: 7 PreToolUse guards (coauthor, pr-reviewer, force-push, md-emdash, workflow-rules, local-only-refs, external-query-leaks) + 1 PostToolUse output filter"
   fi
 
   if [ "$WITH_MEMORY" = 1 ] && [ "$WITH_GLOBAL" = 1 ]; then
@@ -305,6 +307,14 @@ do_check() {
       && [ "$(_ec block-local-only-refs.sh '{"tool_input":{"command":"git commit -m \"refactor src/x.ts\""}}')" = 0 ] \
       && [ "$(_ec block-local-only-refs.sh '{"tool_input":{"command":"ls /Users/w/projects/kb"}}')" = 0 ] \
       && note "behavior: block-local-only-refs denies+allows" || { note "BEHAVIOR FAIL: block-local-only-refs"; ok=0; }
+  fi
+  if [ -f "$h/block-external-query-leaks.sh" ]; then
+    [ "$(_ec block-external-query-leaks.sh '{"tool_name":"Bash","tool_input":{"command":"curl \"http://localhost:8080/search?q=/Users/w/x&format=json\""}}')" = 2 ] \
+      && [ "$(_ec block-external-query-leaks.sh '{"tool_name":"Bash","tool_input":{"command":"curl \"http://localhost:8080/search?q=nextjs+router&format=json\""}}')" = 0 ] \
+      && [ "$(_ec block-external-query-leaks.sh '{"tool_name":"Bash","tool_input":{"command":"grep -r x /Users/w/projects/app"}}')" = 0 ] \
+      && [ "$(_ec block-external-query-leaks.sh '{"tool_name":"WebFetch","tool_input":{"url":"https://d.io","prompt":"check kb/tickets/x.md"}}')" = 2 ] \
+      && [ "$(_ec block-external-query-leaks.sh '{"tool_name":"WebFetch","tool_input":{"url":"https://d.io","prompt":"quote the caching section"}}')" = 0 ] \
+      && note "behavior: block-external-query-leaks denies+allows" || { note "BEHAVIOR FAIL: block-external-query-leaks"; ok=0; }
   fi
 
   # jq preflight: every hook parses the tool-call JSON with jq, so a hook runtime that cannot resolve

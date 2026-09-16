@@ -9,7 +9,14 @@
           { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/block-force-push.sh\"" },
           { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/block-md-emdash.sh\"" },
           { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/block-workflow-rules.sh\"" },
-          { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/block-local-only-refs.sh\"" }
+          { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/block-local-only-refs.sh\"" },
+          { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/block-external-query-leaks.sh\"" }
+        ]
+      },
+      {
+        "matcher": "WebFetch",
+        "hooks": [
+          { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/block-external-query-leaks.sh\"" }
         ]
       },
       {

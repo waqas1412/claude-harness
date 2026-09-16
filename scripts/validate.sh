@@ -95,7 +95,9 @@ fi
 
 echo "== shell lint =="
 BASH_FILES="install.sh uninstall.sh scripts/validate.sh scripts/bump-version.sh tests/run-hook-tests.sh"
-SH_FILES="plugins/harness/hooks/block-coauthor.sh plugins/harness/hooks/block-pr-reviewer.sh plugins/harness/hooks/block-md-emdash.sh plugins/harness/skills/harness-init/assets/verify-generated.sh plugins/harness/skills/refresh-seams/assets/verify-map.sh"
+# Derived, not hand-listed: a hardcoded list silently skipped four of the seven hooks, so a new one
+# could ship with an error-level shellcheck finding that neither the local gate nor CI would report.
+SH_FILES=$(cd "$ROOT" && ls plugins/harness/hooks/block-*.sh plugins/harness/skills/*/assets/*.sh 2>/dev/null | tr '\n' ' ')
 for b in $BASH_FILES; do [ -f "$ROOT/$b" ] && { bash -n "$ROOT/$b" 2>/dev/null && ok "bash -n $b" || err "syntax error $b"; }; done
 for s in $SH_FILES; do [ -f "$ROOT/$s" ] && { sh -n "$ROOT/$s" 2>/dev/null && ok "sh -n $s" || err "syntax error $s"; }; done
 if command -v shellcheck >/dev/null 2>&1; then

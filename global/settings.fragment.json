@@ -26,6 +26,7 @@
     "commit": "",
     "pr": ""
   },
+  "promptCacheTtl": "1h",
   "skipWorkflowUsageWarning": true,
   "_personalPrefs": {
     "_comment": "Keys under _personalPrefs are applied at top level by install.sh ONLY when run without --no-prefs. They are personal-global preferences, not portable defaults. Model and effort are deliberately absent: the /model and /effort pickers own those keys, and listing them here made a plain reinstall silently revert an in-session choice.",

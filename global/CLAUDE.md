@@ -145,8 +145,19 @@ Cross-project, any language. The named file holds the evidence and the concrete 
 
 - Just-in-time context: locate the slice with grep or glob and read only that slice. Do not bulk-read whole
   files, directories or knowledge bases. Filter or summarize large tool output at the source.
-- Keep the session model stable within a task so the cached prefix survives (a fallbackModel swap on
-  overload is a deliberate exception). `/clear` when switching to a distinct task.
+- Keep the model AND the effort level fixed for a whole task: changing either mid-session recomputes the
+  entire cached prefix at full price, so one switch often costs more than it saves (a fallbackModel swap on
+  overload is the deliberate exception). `/clear` when switching to a distinct task.
+- Compact at a task boundary, never mid-task, and say what to keep (`/compact focus on X`). To abandon a bad
+  path use `/rewind`, which truncates back to a prefix that is still cached, rather than `/compact`, which
+  builds a new one. A `/compact` after a long idle gap is the most expensive single action available: the
+  summarising request reprocesses the whole history uncached.
+- Editing this file mid-session changes nothing until `/clear`, `/compact` or a restart. Batch guidance edits
+  and pick them up on the next fresh session instead of editing repeatedly during a task.
+- Read `/usage` ("Prompt cache (main)") before tuning anything for cost: it gives the hit ratio and a likely
+  cause, so the real leak gets fixed instead of a guess.
+- Agent teams cost around seven times a normal session, because every teammate is a full instance with its
+  own window and idle ones keep spending. Use one only when the work truly splits into parallel tracks.
 - With a root `CLAUDE.md` index and `.claude/repo-index/*.md` deep indexes: read the index first, then only
   the matching deep index for what you touch. Never blind-recurse the tree or bulk-read the index dir. With
   none, run `/harness-init` once to generate them.
