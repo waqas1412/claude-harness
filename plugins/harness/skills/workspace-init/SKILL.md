@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 # /workspace-init: harness a multi-repo workspace
 
-Bootstrap or refresh navigation for a workspace ROOT whose immediate children are independent git repositories. This skill is a recipe, not an engine: the main loop plans, delegates, and gates. Read-only scan agents fan out concurrently; exactly one sequential executor agent per repo writes files. Do not build a coordinator, daemon, message bus, or worktree fan-out. Invoking this skill by name is the explicit in-the-moment opt-in the global single-main-loop rule requires; it licenses the fan-out described below and nothing else.
+Bootstrap or refresh navigation for a workspace ROOT whose immediate children are independent git repositories. This skill is a recipe, not an engine: the main loop plans, delegates, and gates. Read-only scan agents fan out concurrently; exactly one sequential executor agent per repo writes files. Do not build a coordinator, daemon, message bus, or worktree fan-out. Invoking this skill by name licenses the fan-out described below and nothing else.
 
 This skill produces WORKSPACE-LEVEL artifacts. It complements the single-repo `harness-init` skill, which produces REPO-LEVEL artifacts inside one repo. Where a child repo already has its own `AGENTS.md`/`CLAUDE.md`, treat that as authoritative for the repo and only summarize it here; never overwrite a repo's internal files.
 

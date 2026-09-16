@@ -1,8 +1,8 @@
 ---
 name: orchestrate
-description: Apply the review lenses yourself, in the solo main loop, with no subagent dispatch. Pick only the lenses the change actually touches, run each as a checklist against real code and real command output, and gate go/no-go on cited evidence. Use when asked to run, use, or review with "our lenses", or to plan or verify a non-trivial change. No executor split, no parallel advisors, no model pinning.
+description: Run the review lenses over a change from the Opus main loop, reading a lens as a checklist or dispatching it as a subagent when an independent look at the diff is worth the round trip. Pick only the lenses the change actually touches, run each against real code and real command output, and gate go/no-go on cited evidence. Use when asked to run, use, or review with "our lenses", or to plan or verify a non-trivial change. The verdict is always the main loop's.
 argument-hint: "[short description of the change, or a PR number to review]"
-allowed-tools: Read, Grep, Glob, Bash
+allowed-tools: Read, Grep, Glob, Bash, Agent
 ---
 
 # /orchestrate: run the lenses in one loop
@@ -11,12 +11,23 @@ The lenses are checklists, not agents. This skill names which ones apply to a gi
 one asks, and what evidence closes it. You apply them yourself in this loop: you plan, you read, you
 edit, you run lint and build and tests, and you review your own diff before committing.
 
-## How this works: one loop, no dispatch
+## How this works: read the lens, or dispatch it
 
-The 16 files in `~/.claude/agents/*.md` are the lens CONTENT. When a checklist below is not enough
-detail for the change in front of you, Read the matching file and use its rubric. They are reference
-documents here, never dispatch targets. Do not spawn a subagent or author a workflow to run a lens
-unless the user asks for that in the moment.
+The 16 lens files in `~/.claude/agents/*.md` are both the lens CONTENT and real dispatch targets. The
+same directory also holds `implementer.md`, which is a writer, not a lens. Two ways to run a lens,
+chosen per lens:
+
+- **Read it and apply it here.** Cheapest, and right for a small diff, or when the lens needs context
+  this conversation already holds. Read the matching file and use its rubric as the checklist.
+- **Dispatch it as a subagent.** Right when an independent read is worth the round trip: a large or
+  risky change, or a verdict you do not want coloured by the reasoning that produced the code. A
+  reviewer in a fresh context cannot see this conversation, so name the target (diff, PR, branch, or
+  planned change) and the baseline it answers to. Nothing more: the lens carries its own rubric, and a
+  checklist of what you already suspect narrows it into agreeing with you. Do not hand it your findings
+  or tell it which part to focus on.
+
+Either way the verdict is yours. A dispatched lens returns findings, never a decision, and a finding
+is not true until you have checked it against the code yourself.
 
 Every verdict follows one shape: read `references/findings-contract.md` before reporting anything. It
 defines the precision-versus-recall dial, the required `failure_scenario`, the three-way verdict, the
@@ -160,11 +171,16 @@ commit per PR) and, only when asked, open the PR with `/pr` as a draft.
 
 ## Gotchas
 
-- No dispatch, no choreography, no coordinator, no worktree fan-out, no per-agent model pinning. The
-  reversal is deliberate: a brain-and-hands split caused real mistakes (2026-07-24). See the
-  single-main-loop memory fact.
-- The `model:` fields were removed from the agent files on 2026-07-26. If you ever do dispatch a lens
-  because the user asked, it inherits the session model.
+- Dispatch a lens, never a coordinator. No agent-of-agents, no choreography, no worktree fan-out for
+  a review. One lens is one subagent, and the main loop is the only thing that decides.
+- A brain-and-hands split was tried before, reverted on 2026-07-24 after real mistakes, then
+  re-enabled deliberately on 2026-09-08. The written reason for that reversal is gone: the memory
+  fact this skill used to cite never existed. What is known is that `.claude/rules/` auto-loaded on
+  every subagent spawn back then, which made dispatch far more expensive than it is now. Treat any
+  repeat of those mistakes as fresh evidence, not as settled history.
+- The 12 verdict-bearing lenses carry `model: inherit`, so a dispatched review runs on Opus. The
+  advisory and drafting agents carry no `model:` line on purpose, so they pick up the exact suffixed
+  id in `env.CLAUDE_CODE_SUBAGENT_MODEL`; a bare `sonnet` alias there can step down to Opus 4.8.
 - A lens with nothing to say is a skip you declare, not a section you pad.
 - Reading the lens file is cheap and reading the wrong lens is waste: pick from the change, not from
   the list length.
