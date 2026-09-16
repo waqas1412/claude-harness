@@ -147,14 +147,16 @@ merge_settings() {
   jq --arg co "sh \"$h/block-coauthor.sh\"" \
      --arg pr "sh \"$h/block-pr-reviewer.sh\"" \
      --arg fp "sh \"$h/block-force-push.sh\"" \
-     --arg md "sh \"$h/block-md-emdash.sh\"" '
+     --arg md "sh \"$h/block-md-emdash.sh\"" \
+     --arg wf "sh \"$h/block-workflow-rules.sh\"" \
+     --arg lr "sh \"$h/block-local-only-refs.sh\"" '
     .hooks //= {} | .hooks.PreToolUse //= []
     # remove any existing harness hook entries (commands referencing /hooks/block-*)
     | .hooks.PreToolUse |= ( map(
         .hooks |= ( (. // []) | map(select((.command // "") | test("/hooks/block-") | not)) )
       ) | map(select((.hooks // []) | length > 0)) )
     | .hooks.PreToolUse += [
-        { "matcher": "Bash", "hooks": [ {"type":"command","command":$co}, {"type":"command","command":$pr}, {"type":"command","command":$fp}, {"type":"command","command":$md} ] },
+        { "matcher": "Bash", "hooks": [ {"type":"command","command":$co}, {"type":"command","command":$pr}, {"type":"command","command":$fp}, {"type":"command","command":$md}, {"type":"command","command":$wf}, {"type":"command","command":$lr} ] },
         { "matcher": "Write|Edit", "hooks": [ {"type":"command","command":$md} ] }
       ]
   ' "$tmp" > "$tmp.h" && mv "$tmp.h" "$tmp"
@@ -223,7 +225,7 @@ install_capabilities() {
     head "Memory store"
     [ -d "$CLAUDE_HOME/memory-seed" ] && { rm -rf "$CLAUDE_HOME/memory-seed"; note "removed legacy memory-seed/"; } || true
     note "the auto-loaded store is $CLAUDE_HOME/projects/<cwd-slug>/memory, created by Claude on first write"
-    note "starter facts stay in $SRC/global/memory (copy them into a store by hand; convention is in CLAUDE.md)"
+    note "no starter facts ship with the harness; the memory convention is in CLAUDE.md"
   else
     note "memory seeding skipped"
   fi
@@ -290,6 +292,20 @@ do_check() {
       && [ "$(_ec block-md-emdash.sh "$(printf '{"tool_name":"Bash","tool_input":{"command":"cat notes%s.md"}}' "$em")")" = 0 ] \
       && note "behavior: block-md-emdash denies+allows" || { note "BEHAVIOR FAIL: block-md-emdash"; ok=0; }
   fi
+  if [ -f "$h/block-workflow-rules.sh" ]; then
+    [ "$(_ec block-workflow-rules.sh '{"tool_input":{"command":"gh pr create --title t --body b"}}')" = 2 ] \
+      && [ "$(_ec block-workflow-rules.sh '{"tool_input":{"command":"gh pr create --draft --title t --body b"}}')" = 0 ] \
+      && [ "$(_ec block-workflow-rules.sh '{"tool_input":{"command":"git commit --no-verify -m x"}}')" = 2 ] \
+      && [ "$(_ec block-workflow-rules.sh '{"tool_input":{"command":"psql -p 15433 -c 1"}}')" = 2 ] \
+      && [ "$(_ec block-workflow-rules.sh '{"tool_input":{"command":"psql -p 15432 -c \"select 1\""}}')" = 0 ] \
+      && note "behavior: block-workflow-rules denies+allows" || { note "BEHAVIOR FAIL: block-workflow-rules"; ok=0; }
+  fi
+  if [ -f "$h/block-local-only-refs.sh" ]; then
+    [ "$(_ec block-local-only-refs.sh '{"tool_input":{"command":"gh pr create --draft --body \"see /Users/w/x.md\""}}')" = 2 ] \
+      && [ "$(_ec block-local-only-refs.sh '{"tool_input":{"command":"git commit -m \"refactor src/x.ts\""}}')" = 0 ] \
+      && [ "$(_ec block-local-only-refs.sh '{"tool_input":{"command":"ls /Users/w/projects/kb"}}')" = 0 ] \
+      && note "behavior: block-local-only-refs denies+allows" || { note "BEHAVIOR FAIL: block-local-only-refs"; ok=0; }
+  fi
 
   # jq preflight: every hook parses the tool-call JSON with jq, so a hook runtime that cannot resolve
   # jq silently allows everything (the documented Windows no-op). Surface it loudly here; the hooks
@@ -300,9 +316,16 @@ do_check() {
     note "JQ UNREACHABLE: hooks will silently no-op. Prepend /usr/bin and jq to PATH (windows-hook-wiring)."; ok=0
   fi
 
-  # memory store + bidirectional pointer integrity: every fact file is listed in MEMORY.md, and
-  # every MEMORY.md link resolves to a real file. Any inconsistency fails --check.
-  local store idx slug orphan=0 found=0 mf ptr
+  # memory store + bidirectional pointer integrity. Two routes make a fact reachable, and a fact needs
+  # exactly one of them:
+  #   - a feedback_* ruling file is cited inline by its own rule in the global CLAUDE.md, which loads
+  #     every session. It is deliberately NOT listed in MEMORY.md, so listing it would pay for the same
+  #     pointer twice on every prompt. Here we assert the citation exists instead.
+  #   - everything else needs a MEMORY.md pointer, or it is dark and will never fire.
+  # Either way a MEMORY.md link must resolve to a real file. Any inconsistency fails --check.
+  local store idx slug orphan=0 found=0 mf ptr base ws cited hay
+  # Where a ruling citation may live: the global rules file, and (for a repo-scoped ruling) the
+  # workspace root index or one of its per-repo deep indexes.
   for store in "$CLAUDE_HOME"/projects/*/memory; do
     [ -d "$store" ] || continue
     found=1; slug="$(basename "$(dirname "$store")")"; idx="$store/MEMORY.md"
@@ -316,8 +339,24 @@ do_check() {
     fi
     for mf in "$store"/*.md; do
       [ -e "$mf" ] || continue
-      [ "$(basename "$mf")" = "MEMORY.md" ] && continue
-      grep -qF "$(basename "$mf")" "$idx" || { note "memory[$slug]: $(basename "$mf") has no MEMORY.md pointer"; orphan=1; }
+      base="$(basename "$mf")"
+      [ "$base" = "MEMORY.md" ] && continue
+      case "$base" in
+        feedback_*)
+          # cited by its rule instead of indexed; the citation is what makes it fire. A general ruling
+          # is cited in the global rules file; a repo-scoped one is cited in that repo's deep index.
+          ws="/$(printf '%s' "$slug" | sed 's/^-//; s/-/\//g')"
+          cited=0
+          for hay in "$CLAUDE_HOME/CLAUDE.md" "$ws/CLAUDE.md" "$ws"/.claude/repo-index/*.md; do
+            [ -f "$hay" ] || continue
+            if grep -qF "${base%.md}" "$hay"; then cited=1; break; fi
+          done
+          [ "$cited" = 1 ] || { note "memory[$slug]: $base is a ruling file cited nowhere (not in CLAUDE.md, the workspace index, or a repo index), so it never fires"; orphan=1; }
+          ;;
+        *)
+          grep -qF "$base" "$idx" || { note "memory[$slug]: $base has no MEMORY.md pointer"; orphan=1; }
+          ;;
+      esac
     done
     for ptr in $(grep -oE '\]\([^)]+\.md\)' "$idx" | sed -E 's/^\]\(//; s/\)$//'); do
       [ -f "$store/$ptr" ] || { note "memory[$slug]: MEMORY.md points to missing $ptr"; orphan=1; }
@@ -325,7 +364,7 @@ do_check() {
     note "memory[$slug]: $(ls -1 "$store"/*.md 2>/dev/null | wc -l | tr -d ' ') files"
   done
   if [ "$found" = 1 ]; then
-    [ "$orphan" = 0 ] && note "memory: pointers consistent in every workspace store" || ok=0
+    [ "$orphan" = 0 ] && note "memory: every fact reachable (rulings cited by a rule, rest indexed)" || ok=0
   else
     note "memory: no workspace store yet at $CLAUDE_HOME/projects/<cwd-slug>/memory"
   fi

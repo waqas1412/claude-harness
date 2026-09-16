@@ -60,7 +60,9 @@ run "force-push: echo mentioning push -f passes"     block-force-push.sh 0 '{"to
 run "emdash: em dash in .md blocks"   block-md-emdash.sh 2 "$(printf '{"tool_input":{"file_path":"/x/a.md","content":"alpha %s beta"}}' "$EM")"
 run "emdash: clean .md passes"        block-md-emdash.sh 0 '{"tool_input":{"file_path":"/x/a.md","content":"alpha, beta"}}'
 run "emdash: MEMORY.md exempt"        block-md-emdash.sh 0 "$(printf '{"tool_input":{"file_path":"/x/MEMORY.md","content":"a %s b"}}' "$EM")"
-run "emdash: non-md ignored"          block-md-emdash.sh 0 "$(printf '{"tool_input":{"file_path":"/x/a.txt","content":"a %s b"}}' "$EM")"
+run "emdash: code file ignored"       block-md-emdash.sh 0 "$(printf '{"tool_input":{"file_path":"/x/a.ts","content":"const s = \\"a %s b\\";"}}' "$EM")"
+run "emdash: .txt covered"            block-md-emdash.sh 2 "$(printf '{"tool_input":{"file_path":"/x/body.txt","content":"a %s b"}}' "$EM")"
+run "emdash: .mdx covered"            block-md-emdash.sh 2 "$(printf '{"tool_input":{"file_path":"/x/a.mdx","content":"a %s b"}}' "$EM")"
 run "emdash: Edit new_string blocks"  block-md-emdash.sh 2 "$(printf '{"tool_input":{"file_path":"/x/a.md","new_string":"a %s b"}}' "$EM")"
 run "emdash: Bash git commit blocks"  block-md-emdash.sh 2 "$(printf '{"tool_name":"Bash","tool_input":{"command":"git commit -m fix%sready"}}' "$EM")"
 run "emdash: Bash gh pr create blocks" block-md-emdash.sh 2 "$(printf '{"tool_name":"Bash","tool_input":{"command":"gh pr create --title t --body a%sb"}}' "$EM")"
@@ -147,6 +149,31 @@ vg() { # desc want file
     PASS=$((PASS + 1)); printf 'PASS  %-46s exit %s\n' "$desc" "$got"
   else FAIL=$((FAIL + 1)); printf 'FAIL  %-46s exit %s (want %s)\n' "$desc" "$got" "$want"; fi
 }
+# block-workflow-rules: four deterministic workflow guards
+run "workflow: pr create without --draft blocks"    block-workflow-rules.sh 2 '{"tool_input":{"command":"gh pr create --title t --body b"}}'
+run "workflow: pr create with --draft passes"       block-workflow-rules.sh 0 '{"tool_input":{"command":"gh pr create --draft --title t --body b"}}'
+run "workflow: --no-verify blocks"                  block-workflow-rules.sh 2 '{"tool_input":{"command":"git commit --no-verify -m x"}}'
+# a flag named inside a quoted argument is prose, not an invocation, so it must pass
+run "workflow: prose naming --no-verify passes"     block-workflow-rules.sh 0 '{"tool_input":{"command":"echo \"the --no-verify flag is blocked\""}}'
+run "workflow: prod write-port blocks"              block-workflow-rules.sh 2 '{"tool_input":{"command":"psql -h localhost -p 15433 -c \"select 1\""}}'
+run "workflow: write-port nested in ssh blocks"     block-workflow-rules.sh 2 '{"tool_input":{"command":"ssh prod \"psql -p 15433 -c 1\""}}'
+# the number is only a port when used as one; grepping for it is fine
+run "workflow: grep for the port number passes"     block-workflow-rules.sh 0 '{"tool_input":{"command":"grep -rn 15433 hooks/"}}'
+run "workflow: write against prod reader blocks"    block-workflow-rules.sh 2 '{"tool_input":{"command":"psql -p 15432 -c \"UPDATE pods SET x=1\""}}'
+run "workflow: read from prod reader passes"        block-workflow-rules.sh 0 '{"tool_input":{"command":"psql -p 15432 -c \"select count(*) from pods\""}}'
+run "workflow: write against dev passes"            block-workflow-rules.sh 0 '{"tool_input":{"command":"psql -p 25432 -c \"INSERT INTO pods VALUES (1)\""}}'
+run "workflow: sleep then gh pr checks blocks"      block-workflow-rules.sh 2 '{"tool_input":{"command":"sleep 60 && gh pr checks 1234"}}'
+run "workflow: single gh pr checks passes"          block-workflow-rules.sh 0 '{"tool_input":{"command":"gh pr checks 1234"}}'
+
+# block-local-only-refs: local paths must not reach anything a colleague reads
+run "localrefs: /Users path in pr body blocks"      block-local-only-refs.sh 2 '{"tool_input":{"command":"gh pr create --draft --body \"see /Users/w/x.md\""}}'
+run "localrefs: kb path in commit blocks"           block-local-only-refs.sh 2 '{"tool_input":{"command":"git commit -m \"per kb/tickets/web-1/spec.md\""}}'
+run "localrefs: repo-relative path in commit passes" block-local-only-refs.sh 0 '{"tool_input":{"command":"git commit -m \"refactor src/utils/date.ts\""}}'
+run "localrefs: tracker link in pr body passes"     block-local-only-refs.sh 0 '{"tool_input":{"command":"gh pr create --draft --body \"Closes [WEB-1](https://x.atlassian.net/browse/WEB-1)\""}}'
+# a local path in a non-publishing command is fine, and naming a publish command is not publishing
+run "localrefs: ls of a local path passes"          block-local-only-refs.sh 0 '{"tool_input":{"command":"ls /Users/w/projects/kb"}}'
+run "localrefs: grep naming gh pr create passes"    block-local-only-refs.sh 0 '{"tool_input":{"command":"grep -q \"gh pr create\" /Users/w/.claude/CLAUDE.md"}}'
+
 VGTMP="$(mktemp -d)"
 trap 'rm -rf "$VGTMP"' EXIT
 printf 'see `%s` for the wiring\n' "plugins/harness/hooks/hooks.json" > "$VGTMP/good.md"

@@ -45,7 +45,7 @@ case "$tool" in
     fp=$(printf '%s' "$input" | jq -r '.tool_input.file_path // ""')
     [ "$(basename "$fp")" = "MEMORY.md" ] && exit 0
     case "$fp" in
-      *.md)
+      *.md|*.mdx|*.txt|*.markdown)
         field=content
         text=$(printf '%s' "$input" | jq -r '.tool_input.content // empty')
         if [ -z "$text" ]; then
