@@ -297,14 +297,19 @@ do_check() {
       && [ "$(_ec block-md-emdash.sh "$(printf '{"tool_name":"Bash","tool_input":{"command":"cat notes%s.md"}}' "$em")")" = 0 ] \
       && note "behavior: block-md-emdash denies+allows" || { note "BEHAVIOR FAIL: block-md-emdash"; ok=0; }
   fi
+  # Rule 3 reads its ports from a site file outside this repo, so the self-test supplies a synthetic one.
+  DBSELF="$(mktemp)"; printf 'reader_port=%s\nforbidden_port=%s\n' 19001 19002 > "$DBSELF"
   if [ -f "$h/block-workflow-rules.sh" ]; then
     [ "$(_ec block-workflow-rules.sh '{"tool_input":{"command":"gh pr create --title t --body b"}}')" = 2 ] \
       && [ "$(_ec block-workflow-rules.sh '{"tool_input":{"command":"gh pr create --draft --title t --body b"}}')" = 0 ] \
       && [ "$(_ec block-workflow-rules.sh '{"tool_input":{"command":"git commit --no-verify -m x"}}')" = 2 ] \
-      && [ "$(_ec block-workflow-rules.sh '{"tool_input":{"command":"psql -p 15433 -c 1"}}')" = 2 ] \
-      && [ "$(_ec block-workflow-rules.sh '{"tool_input":{"command":"psql -p 15432 -c \"select 1\""}}')" = 0 ] \
+      && [ "$(CLAUDE_DB_PORTS="$DBSELF" _ec block-workflow-rules.sh '{"tool_input":{"command":"psql -p 19002 -c 1"}}')" = 2 ] \
+      && [ "$(CLAUDE_DB_PORTS="$DBSELF" _ec block-workflow-rules.sh '{"tool_input":{"command":"psql -p 19001 -c \"select 1\""}}')" = 0 ] \
       && note "behavior: block-workflow-rules denies+allows" || { note "BEHAVIOR FAIL: block-workflow-rules"; ok=0; }
   fi
+    dbsite="${CLAUDE_DB_PORTS:-$CLAUDE_HOME/hooks/db-ports.txt}"
+    if [ -f "$dbsite" ]; then note "db port guard: site file present ($dbsite)"
+    else note "db port guard: NO site file at $dbsite, so that rule is a no-op"; fi
   if [ -f "$h/block-local-only-refs.sh" ]; then
     [ "$(_ec block-local-only-refs.sh '{"tool_input":{"command":"gh pr create --draft --body \"see /Users/w/x.md\""}}')" = 2 ] \
       && [ "$(_ec block-local-only-refs.sh '{"tool_input":{"command":"git commit -m \"refactor src/x.ts\""}}')" = 0 ] \

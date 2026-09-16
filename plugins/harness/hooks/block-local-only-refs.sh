@@ -29,7 +29,7 @@ printf '%s' "$cmd" | grep -Eq '\.claude/(repo-index|meta|harness)/' && hit="${hi
 
 if [ -n "$hit" ]; then
   echo "Blocked: $hit in prose being published where a colleague reads it." >&2
-  echo "Drop the local-only reference. Tracker keys, live Jira and Confluence URLs, and repo-relative paths (src/..., connect/src/...) are fine." >&2
+  echo "Drop the local-only reference. Tracker keys, live Jira and Confluence URLs, and repo-relative paths (src/..., packages/app/src/...) are fine." >&2
   printf '%s' "$cmd" | grep -nE '/Users/|(^|[^a-zA-Z0-9_/.-])kb/|[Ff]etched locally|\.claude/(repo-index|meta|harness)/' | head -3 | cut -c1-160 | sed 's/^/  /' >&2
   exit 2
 fi

@@ -155,13 +155,20 @@ run "workflow: pr create with --draft passes"       block-workflow-rules.sh 0 '{
 run "workflow: --no-verify blocks"                  block-workflow-rules.sh 2 '{"tool_input":{"command":"git commit --no-verify -m x"}}'
 # a flag named inside a quoted argument is prose, not an invocation, so it must pass
 run "workflow: prose naming --no-verify passes"     block-workflow-rules.sh 0 '{"tool_input":{"command":"echo \"the --no-verify flag is blocked\""}}'
-run "workflow: prod write-port blocks"              block-workflow-rules.sh 2 '{"tool_input":{"command":"psql -h localhost -p 15433 -c \"select 1\""}}'
-run "workflow: write-port nested in ssh blocks"     block-workflow-rules.sh 2 '{"tool_input":{"command":"ssh prod \"psql -p 15433 -c 1\""}}'
+# Rule 3 reads its ports from a site file outside this repo. Tests supply a synthetic one so no
+# real infrastructure detail lives here, and so the degrade path is covered too.
+DBCFG="$(mktemp)"; printf 'reader_port=%s\nforbidden_port=%s\ndev_port=%s\n' 19001 19002 19003 > "$DBCFG"
+export CLAUDE_DB_PORTS="$DBCFG"
+
+run "workflow: forbidden port blocks"               block-workflow-rules.sh 2 '{"tool_input":{"command":"psql -h localhost -p 19002 -c \"select 1\""}}'
+run "workflow: forbidden port nested in ssh blocks" block-workflow-rules.sh 2 '{"tool_input":{"command":"ssh host \"psql -p 19002 -c 1\""}}'
 # the number is only a port when used as one; grepping for it is fine
-run "workflow: grep for the port number passes"     block-workflow-rules.sh 0 '{"tool_input":{"command":"grep -rn 15433 hooks/"}}'
-run "workflow: write against prod reader blocks"    block-workflow-rules.sh 2 '{"tool_input":{"command":"psql -p 15432 -c \"UPDATE pods SET x=1\""}}'
-run "workflow: read from prod reader passes"        block-workflow-rules.sh 0 '{"tool_input":{"command":"psql -p 15432 -c \"select count(*) from pods\""}}'
-run "workflow: write against dev passes"            block-workflow-rules.sh 0 '{"tool_input":{"command":"psql -p 25432 -c \"INSERT INTO pods VALUES (1)\""}}'
+run "workflow: grep for the port number passes"     block-workflow-rules.sh 0 '{"tool_input":{"command":"grep -rn 19002 hooks/"}}'
+run "workflow: write against reader blocks"         block-workflow-rules.sh 2 '{"tool_input":{"command":"psql -p 19001 -c \"UPDATE t SET x=1\""}}'
+run "workflow: read from reader passes"             block-workflow-rules.sh 0 '{"tool_input":{"command":"psql -p 19001 -c \"select count(*) from t\""}}'
+run "workflow: write against dev port passes"       block-workflow-rules.sh 0 '{"tool_input":{"command":"psql -p 19003 -c \"INSERT INTO t VALUES (1)\""}}'
+
+CLAUDE_DB_PORTS=/nonexistent-db-ports run "workflow: no port file, rule is a no-op"   block-workflow-rules.sh 0 '{"tool_input":{"command":"psql -p 19002 -c \"select 1\""}}'
 run "workflow: sleep then gh pr checks blocks"      block-workflow-rules.sh 2 '{"tool_input":{"command":"sleep 60 && gh pr checks 1234"}}'
 run "workflow: single gh pr checks passes"          block-workflow-rules.sh 0 '{"tool_input":{"command":"gh pr checks 1234"}}'
 
