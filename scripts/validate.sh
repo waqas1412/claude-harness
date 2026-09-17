@@ -33,7 +33,7 @@ else err "version mismatch: VERSION=$vf plugin=$vp marketplace=$vm"; fi
 
 echo "== agents =="
 agent_slugs=$(for f in "$AGENTS"/*.md; do basename "$f" .md; done | sort)
-RO_TOOLS="Read Grep Glob Bash WebFetch WebSearch"
+RO_TOOLS="Read Grep Glob Bash WebFetch WebSearch LSP"
 MODELS="sonnet opus haiku fable"
 for f in "$AGENTS"/*.md; do
   name=$(basename "$f" .md)
