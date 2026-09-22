@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: Run the review lenses over a change from the Opus main loop, reading a lens as a checklist or dispatching it as a subagent when an independent look at the diff is worth the round trip. Pick only the lenses the change actually touches, run each against real code and real command output, and gate go/no-go on cited evidence. Use when asked to run, use, or review with "our lenses", or to plan or verify a non-trivial change. The verdict is always the main loop's.
+description: "Run the review lenses over a change: pick the ones the change touches, read or dispatch each, gate go/no-go on cited evidence. Use when asked for our lenses, or to plan or verify a non-trivial change."
 argument-hint: "[short description of the change, or a PR number to review]"
 allowed-tools: Read, Grep, Glob, Bash, Agent
 ---
@@ -42,6 +42,32 @@ Right-size to the change:
 - Cross-cutting, shared-seam, or architecture change: the full panel.
 
 Declare skips out loud ("no design parity: this diff has no UI"). A silent skip reads as a pass.
+
+### Which lens owns what, when two look alike
+
+Agent descriptions carry only what each lens owns, because they sit in every session's prompt. The
+boundaries live here instead, and they are the part that stops a misroute. Every lens below runs two
+gates, PLAN and VERIFY, and every one is read-only.
+
+| Overlap | Goes to | Not to |
+|---|---|---|
+| A logic bug, boundary or contract slip | `developer-reviewer` | anything below |
+| Authorization, tenant scoping, secrets, injection | `security-auditor` | `developer-reviewer` |
+| A signal read before it settles, a race, staleness | `data-flow-timing-auditor` | `developer-reviewer` |
+| Does it break an existing consumer | `compatibility-auditor` | `developer-reviewer` |
+| Did we build what the ticket asked | `spec-fidelity-auditor` | `developer-reviewer` |
+| Big-O, allocations, N+1, render and bundle cost | `performance-optimizer` | `developer-reviewer` |
+| Where the code should live, boundaries, blast radius | `system-architect` | `system-designer` |
+| Exact signatures and shapes, once placement is settled | `system-designer` | `system-architect` |
+| SOLID, GRASP, coupling and cohesion | `design-principles-advisor` | `principles-engineer` |
+| Duplication, reuse, right-sizing an abstraction | `principles-engineer` | `design-principles-advisor` |
+| Does the built UI match the design file | `design-parity-auditor` | `accessibility-auditor` |
+| The WCAG floors a DESIGN must not lose | `design-parity-auditor` | `accessibility-auditor` |
+| Does the BUILT component honour those floors | `accessibility-auditor` | `design-parity-auditor` |
+| A library fact at the installed version | `docs-researcher` | `developer-reviewer` |
+
+Two things no lens owns: the spec's own merit (that goes to the spec owner) and the design's own merit
+(that goes to a designer). Dependency CVE triage is `/security-review`, not `security-auditor`.
 
 ## Set the dial: precision or recall
 
@@ -178,9 +204,12 @@ commit per PR) and, only when asked, open the PR with `/pr` as a draft.
   fact this skill used to cite never existed. What is known is that `.claude/rules/` auto-loaded on
   every subagent spawn back then, which made dispatch far more expensive than it is now. Treat any
   repeat of those mistakes as fresh evidence, not as settled history.
-- The 12 verdict-bearing lenses carry `model: inherit`, so a dispatched review runs on Opus. The
-  advisory and drafting agents carry no `model:` line on purpose, so they pick up the exact suffixed
-  id in `env.CLAUDE_CODE_SUBAGENT_MODEL`; a bare `sonnet` alias there can step down to Opus 4.8.
+- No agent file carries a `model:` line, so EVERY dispatched lens runs on the exact suffixed id in
+  `env.CLAUDE_CODE_SUBAGENT_MODEL`, verified on 2026-09-22 to be `eu.anthropic.claude-sonnet-5[1m]`.
+  This file used to claim the verdict-bearing lenses carried `model: inherit` and ran on Opus; they
+  never did. Set that id, never a bare `sonnet` alias, which can step down to Opus 4.8. The statusline
+  reads `.model.display_name` for the SESSION, so it shows Opus while a Sonnet lens is running: it is
+  not evidence of the lens model.
 - A lens with nothing to say is a skip you declare, not a section you pad.
 - Reading the lens file is cheap and reading the wrong lens is waste: pick from the change, not from
   the list length.

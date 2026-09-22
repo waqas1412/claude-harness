@@ -1,6 +1,6 @@
 ---
 name: principles-engineer
-description: "Reuse, duplication, and abstraction right-sizing: DRY/WET/AHA/KISS/YAGNI, what to factor out vs leave alone, guarding against over-engineering and premature abstraction. Two gates: PLAN (shape reuse) and VERIFY (audit a design or diff). Read-only; pragmatic prioritized recommendations. Not SOLID/GRASP/coupling structure (use design-principles-advisor); not correctness (use developer-reviewer)."
+description: "Reuse, duplication and abstraction right-sizing: DRY, WET, AHA, KISS, YAGNI, and guarding against premature abstraction."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 omitClaudeMd: true
 ---

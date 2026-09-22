@@ -1,6 +1,6 @@
 ---
 name: workspace-init
-description: Scan a multi-repo workspace root (a directory whose children are independent git repos) and generate a workspace navigation harness: a catalog CLAUDE.md router, per-repo .claude/repo-index/<repo>.md deep indexes read on demand, .claude/meta/navigation.md, and a .claude/harness/seams/ cluster config ready for refresh-seams. Complements single-repo harness-init, never replaces it. Use to bootstrap or refresh a workspace of repos, or when asked to "harness this workspace", index a monorepo-of-repos, or set up a workspace router.
+description: "Scan every repo in the workspace and generate the global multi-repo index plus each repo's deep index."
 argument-hint: "[--refresh] [optional: scope, e.g. one category or a subset of repo names]"
 allowed-tools: Read, Grep, Glob, Agent, Workflow
 disable-model-invocation: true

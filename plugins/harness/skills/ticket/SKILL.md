@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: "Write or draft a tracker ticket in product language and rich text: the core issue in two lines, a numbered middle of about five steps, then a pair of results. Bugs use steps to reproduce with actual versus expected; stories, tasks and spikes use the same skeleton with their own middle and pair. Project tokens read from .claude/harness/profile.md. Use when drafting any ticket or backlog markdown."
+description: "Write or draft a tracker ticket in product language: the core issue in two lines, a numbered middle, then a pair of results. Use when drafting any ticket or backlog item."
 argument-hint: "[bug | story | refactor]"
 allowed-tools: Read, Grep, Glob, Bash
 ---

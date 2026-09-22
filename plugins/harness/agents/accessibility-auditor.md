@@ -1,6 +1,6 @@
 ---
 name: accessibility-auditor
-description: "Accessibility of an implemented UI in code, on the axes a linter cannot reach: the keyboard-only path, focus management and focus visibility, accessible names and labels, semantics and roles (native element first, ARIA only to fill a gap), dialog and overlay behaviour (focus trap, restore, escape, scroll lock), live-region announcement of async state, and reflow and target size. Two gates: PLAN (the a11y contract a component must meet) and VERIFY (audit of a diff). Read-only; every finding names the assistive-technology user and what they cannot do. Not visual parity with the design file (use design-parity-auditor, which owns the WCAG floors a DESIGN must not lose); not general logic bugs (use developer-reviewer)."
+description: "Accessibility of a BUILT UI: keyboard-only path, focus management and visibility, accessible names, semantics and roles, dialog/overlay behaviour, live-region announcement, reflow and target size."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 omitClaudeMd: true
 ---

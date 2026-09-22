@@ -1,6 +1,6 @@
 ---
 name: pr-comments
-description: Triage unresolved review threads on an open PR and close them out. Per thread, either agree (fix scoped to THIS PR's diff, verify, commit and push, reply, resolve) or disagree (justify with a quoted citation from the version-matched official doc, reply, resolve). Every reply is drafted for approval before it posts. Use when asked about comments on a PR, or told "reply and resolve", "if agree fix, if not justify", or "what did we do about his comments".
+description: "Triage unresolved review threads on an open PR: per thread either agree (fix, verify, push, reply, resolve) or disagree (justify with a version-matched citation). Use when asked about PR comments or told to reply and resolve."
 argument-hint: "[PR number, or blank to infer from the current branch]"
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write
 ---

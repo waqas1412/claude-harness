@@ -1,6 +1,6 @@
 ---
 name: compatibility-auditor
-description: "Whether a change breaks an existing consumer, and whether the PR's breaking-change assertion is true. Sweeps outward from the diff to every consumer of what it touched: API request/response and status contracts, published schemas (OpenAPI, TypeSpec, GraphQL), database schema and migration reversibility, shared component props and exported signatures, persisted state (localStorage, cookies, cached payloads), event and analytics names, config and env vars, and deploy ordering across repos. Two gates: PLAN (compatibility budget and migration path) and VERIFY (consumer sweep plus assertion check). Read-only; every finding names the specific consumer that breaks. Not internal correctness (use developer-reviewer); not placement (use system-architect)."
+description: "Whether a change breaks an existing consumer: API and status contracts, published schemas, migration reversibility, shared props and exported signatures, persisted state, event names, config, deploy ordering."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 ---
 

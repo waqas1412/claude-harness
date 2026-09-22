@@ -41,7 +41,8 @@ for f in "$AGENTS"/*.md; do
   [ -n "$(fmval "$f" description)" ] || err "$name: missing 'description'"
   [ "$(fmval "$f" name)" = "$name" ] || err "$name: frontmatter name != filename"
   tl=$(fmval "$f" tools)
-  if [ -n "$tl" ]; then
+  # implementer is the one agent that writes; every other agent must stay read-only.
+  if [ -n "$tl" ] && [ "$name" != "implementer" ]; then
     bad=""
     for t in $(echo "$tl" | tr ',' ' '); do is_in "$t" $RO_TOOLS || bad="$bad $t"; done
     [ -z "$bad" ] && ok "$name: tools read-only" || err "$name: non-read-only tools:$bad"

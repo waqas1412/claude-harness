@@ -1,6 +1,6 @@
 ---
 name: system-designer
-description: "Micro component spec once placement is decided: exact function/query signatures, request/response shapes, algorithm/aggregation steps, exhaustive edge-case matrix. Two gates: PLAN (write the spec) and VERIFY (built component matches the spec). Read-only advisor. Not placement/boundaries (use system-architect); not writing idiomatic code in the repo's language (use senior-software-engineer)."
+description: "Micro component spec once placement is decided: exact signatures, request and response shapes, algorithm steps, exhaustive edge-case matrix."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, LSP
 omitClaudeMd: true
 ---

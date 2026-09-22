@@ -1,6 +1,6 @@
 ---
 name: pr-author
-description: "Drafts a GitHub PR title and body by following the /pr skill template (single source of truth) and the repo profile. Reads the working diff, returns ready-to-submit text with no em dashes and N/A sections deleted; the main loop runs gh pr create. Not code-correctness review (use developer-reviewer); not design (use design-principles-advisor)."
+description: "Drafts a PR title and body by following the /pr skill template and the repo profile."
 tools: Read, Grep, Glob, Bash
 ---
 

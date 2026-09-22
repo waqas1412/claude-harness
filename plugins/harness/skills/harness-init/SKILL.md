@@ -1,6 +1,6 @@
 ---
 name: harness-init
-description: Scan the current repository and generate a tailored navigation harness (root CLAUDE.md index, read-on-demand .claude/repo-index/*.md deep indexes, .claude/meta/navigation.md, and a .claude/harness/profile.md consumed by /pr and /ticket). Runs autonomously: infers stack, areas, verify commands, and conventions, then writes the files. Use to bootstrap or refresh a repo's harness, or when asked to "harness this project", set up CLAUDE.md, or index a codebase.
+description: "Generate a repo's CLAUDE.md index and .claude/repo-index deep indexes. Use once per repo that has none."
 argument-hint: "[--refresh] [--emit codex] [optional: area/path to focus]"
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit
 disable-model-invocation: true

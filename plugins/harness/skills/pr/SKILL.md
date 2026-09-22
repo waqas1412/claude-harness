@@ -1,6 +1,6 @@
 ---
 name: pr
-description: Write or draft a minimal GitHub PR description: a linked tracker close line plus 3 to 6 one-line bullets of what changed and why, and nothing else (no headings, no Testing block, no screenshots table). Project tokens (repo, tracker prefix, verify commands) are read from .claude/harness/profile.md. Use when running gh pr create / gh pr edit or when asked to write a PR description/body.
+description: "Write or draft a minimal GitHub PR title and body: a linked tracker close line plus 3 to 6 one-line bullets, nothing else. Use when running gh pr create / gh pr edit or when asked for a PR description."
 argument-hint: "[ticket key, or blank to infer from branch]"
 allowed-tools: Read, Grep, Glob, Bash
 ---

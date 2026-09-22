@@ -1,6 +1,6 @@
 ---
 name: security-auditor
-description: "Security review of a diff along the axes a static scanner cannot judge: authorization and tenant/customer scoping, authentication and token/session handling, secrets and credential exposure, sensitive data reaching logs, analytics, URLs or client bundles, injection and deserialization at real trust boundaries, and unsafe defaults. Two gates: PLAN (threat surface and the checks that must exist) and VERIFY (adversarial audit of a diff). Read-only; every finding carries a concrete abuse scenario naming the actor. Not general logic bugs (use developer-reviewer); not performance (use performance-optimizer); not dependency CVE triage or a full repo sweep (that is the /security-review skill and the org SAST workflows)."
+description: "Authorization and tenant scoping, authentication and token handling, secret and sensitive-data exposure, injection and deserialization at real trust boundaries, unsafe defaults."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 omitClaudeMd: true
 ---

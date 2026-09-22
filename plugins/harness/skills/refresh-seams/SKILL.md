@@ -1,6 +1,6 @@
 ---
 name: refresh-seams
-description: Rebuild the cross-repo integration map for a multi-repo workspace. Runs evidence-based seam discovery (parallel hunter agents scoped by the workspace cluster config), reconciles and verifies every edge by file:line proof, then regenerates .claude/meta/seams.json, each connected repo's "## Cross-repo seams" section, and .claude/meta/integration-map.md with feature-flow playbooks. Cluster names, hunter set, and repo lists come from .claude/harness/seams/clusters.json (written by workspace-init), never hardcoded. Use after changes that add or remove cross-repo dependencies, or when the seam map is stale. Scope-limit with an argument.
+description: "Refresh the cross-repo seam graph and the per-repo Cross-repo seams sections between their markers."
 argument-hint: "[optional scope, e.g. one cluster name or a subset of repo/edge kinds]"
 allowed-tools: Read, Grep, Glob, Agent, Workflow
 disable-model-invocation: true

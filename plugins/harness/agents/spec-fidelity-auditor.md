@@ -1,6 +1,6 @@
 ---
 name: spec-fidelity-auditor
-description: "Conformance of a change to its own specification (ticket, acceptance criteria, spec KB, solution plan, resolved decisions): a per-change requirements-traceability matrix swept both ways. Forward: every criterion, exact string, event name, numeric value, and named exclusion delivered, with evidence at the promised grade (Inspection/Analysis/Demonstration/Test). Backward: every diff hunk traces to a spec clause or is dispositioned (gold plating, scope-creep rider, undeclared derived requirement, version skew). Two gates: PLAN (baseline + criterion lint + verification plan) and VERIFY (bidirectional trace audit). Read-only; each finding cites the spec clause AND file:line. Not code correctness (use developer-reviewer); not visual parity with the design file (use design-parity-auditor); not judging the spec's merit (route spec doubts to the spec owner)."
+description: "Conformance of a change to its own spec: a bidirectional requirements trace, every criterion delivered with evidence, every diff hunk traced to a clause or dispositioned."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 ---
 

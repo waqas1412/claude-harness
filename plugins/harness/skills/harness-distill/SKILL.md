@@ -1,6 +1,6 @@
 ---
 name: harness-distill
-description: Distill durable learnings from recent sessions and code-review corrections into proposed memory facts, CLAUDE.md rule lines, or skill Gotchas. Use periodically, or after a run that surfaced recurring friction, corrections you keep repeating, or a gotcha worth capturing. It clusters candidates, adversarially verifies each with a skeptic, dedups against the memory store, and proposes edits for your approval. Not for one-off task notes or anything git, the repo, or CLAUDE.md already records; use the memory convention directly for a single known fact.
+description: "Distill durable learnings from recent sessions into proposed memory facts, CLAUDE.md lines or skill gotchas, verified and deduped. Proposes only. Use after a run that surfaced recurring friction."
 argument-hint: "[optional: session count or scope to widen the default slice]"
 allowed-tools: Read, Grep, Glob, Bash, Agent, Workflow
 ---

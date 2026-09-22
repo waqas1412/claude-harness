@@ -1,6 +1,6 @@
 ---
 name: sync-prs
-description: Sync the user's open PRs with their base branches. Read each PR's real base from gh (never assume the default branch), rebase in stack order so a parent rewrite ripples into its children, preserve every commit, push --force-with-lease on the same branch ref, and report per-PR base-ahead / head-ahead / commit-count / conflict state. Hands any conflict back with files and hunks instead of resolving it. Use for "sync my open PRs with their base", "update PR N with development", "is branch X in sync with its base", or a plain branch sync with no PR.
+description: "Sync open PRs with their real bases from gh, rebase in stack order, push --force-with-lease, report per-PR state. Hands conflicts back unresolved. Use for syncing a branch or PR with its base."
 argument-hint: "[PR number or branch, or blank for all open PRs]"
 allowed-tools: Read, Grep, Glob, Bash
 ---

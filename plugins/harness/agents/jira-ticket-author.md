@@ -1,6 +1,6 @@
 ---
 name: jira-ticket-author
-description: "Drafts a tracker ticket for this repository by following the /ticket skill template (single source of truth) and reading .claude/harness/profile.md for the tracker prefix and links. Returns a ready-to-paste minimal ticket: type/parent line, terse <Area>: title, and a compact summary of what should change and why, nothing else, no em dashes; the main loop posts it. Not implementation placement or spec (use system-architect / system-designer)."
+description: "Drafts a tracker ticket by following the /ticket skill template and the repo profile."
 tools: Read, Grep, Glob, Bash
 ---
 

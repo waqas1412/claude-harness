@@ -1,6 +1,6 @@
 ---
 name: senior-software-engineer
-description: "Implementation craft: drafting and validating idiomatic code in the repo's primary language(s), following its conventions for error handling, data access, framework wiring, and formatting. Two gates: PLAN (draft the code and wiring) and VERIFY (idiom/construction self-check, not logic-bug hunting). Read-only advisor; main loop owns edits. Not independent correctness/test review (use developer-reviewer); not design principles (use design-principles-advisor)."
+description: "Implementation craft: idiomatic code in the repo's primary languages and its conventions for error handling, data access and framework wiring. Advisory; the main loop owns edits."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 effort: medium
 ---
