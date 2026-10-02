@@ -1,7 +1,7 @@
 ---
 name: ticket
 description: "Write or draft a tracker ticket in product language: the core issue in two lines, a numbered middle, then a pair of results. Use when drafting any ticket or backlog item."
-argument-hint: "[bug | story | refactor]"
+argument-hint: "[bug | story | refactor | bump]"
 allowed-tools: Read, Grep, Glob, Bash
 ---
 
@@ -13,7 +13,7 @@ Ticket keys use `TICKET_PREFIX` (e.g. `PROJ-1234`); if the project has no tracke
 a backlog markdown file and link a GitHub issue instead.
 
 ## Body
-EVERY type shares one skeleton, so a reader who has seen one ticket can read any of them: the core
+Every type except a version bump shares one skeleton, so a reader who has seen one ticket can read any of them: the core
 issue in two lines, a numbered middle of about five steps, then a pair of results shown as two panels.
 Only the middle's name and the pair change with the type:
 
@@ -22,6 +22,10 @@ Only the middle's name and the pair change with the type:
 - Task or refactor: What changes, then Today and After this ships. A refactor's After says plainly that
   nothing a person can see changes, and what proves it.
 - Spike: What to investigate, then Open question and What a good answer settles.
+- Version bump: no skeleton. One line saying what to update to (each package, new version, old version),
+  then **Expected: these work as before**, a bulleted list of surfaces, each written as the behaviour
+  that must hold, never as steps to follow. No pair, no panels. Package names stay, since the bump is
+  the subject.
 
 Five is a target, not a quota. A bug needing ten steps is usually two bugs; a task with ten changes is
 usually two tasks.
@@ -60,6 +64,7 @@ just not spelled out in the ticket); verify-before-git-ops.
 - Publishing escaped markdown into a rich-text field, so the reader sees literal asterisks and numbers instead of formatting.
 - Believing a read-back about panels: the Atlassian MCP tools downconvert the description to markdown on read even when ADF is requested, and markdown has no panel, so the read-back can neither prove nor disprove that panels landed. Confirm in the browser or fetch the raw field.
 - Using heading nodes for the three sections. Bold lead-ins carry them; a ticket this short does not need headings.
+- Giving a version bump the skeleton, panels or numbered steps: it reads as a bug report or a to-do list. Say what to update to, then what to expect. Never "now uses": a ticket asks for the work, it does not report it.
 - Padding the steps to exactly five when the work needs four, or stretching one repro to ten steps when it is really two bugs.
 - Giving a story or a task a bug's middle. A story's middle is the journey the person walks, a task's is the surfaces that change; neither is a reproduction.
 - Writing a refactor whose After promises a visible improvement. A refactor's After says nothing a person can see changes, and names what proves it.

@@ -117,6 +117,22 @@ TITLE: <Area>: <the question, short>
 - <A time box, if there is one.>
 ```
 
+## Version bump
+The one type outside the skeleton. QA needs the versions and what to check, nothing more. Package names
+and versions are allowed here, since they are the subject. Write each check as the behaviour that must
+hold, not as a step to perform. Phrase it as the work to do ("Update ... to"), never as done ("now uses").
+```markdown
+TYPE: Task · PARENT: <TICKET-KEY> (if any)
+TITLE: <Area>: bump <package> to <version>
+
+Update <area> to **<package> <new>** (from <old>)< and **<package> <new>** (from <old>)>.
+
+**Expected: these work as before**
+- <Surface>: <the behaviour that must hold, e.g. pairing from Connect, refreshing its token, and unpairing.>
+- <...>
+```
+Rich text: bold lead-in and a bulleted list only. No panels, no ordered list.
+
 ## Closing line, every type
 When the work came from someone's report, close with:
 `Reported by <name> in [#<channel>](<thread-url>).`
