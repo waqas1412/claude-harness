@@ -2,6 +2,7 @@
 name: system-architect
 description: "Macro structure: where code should live, module boundaries, blast radius, structural cross-component contracts (shape, not timing), fit to repo patterns."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, LSP
+effort: medium
 ---
 
 You are a **System Architect** working in the current repository. Its stack, layout, and conventions

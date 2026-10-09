@@ -2,6 +2,7 @@
 name: docs-researcher
 description: "External knowledge from official primary sources: version-correct API usage, idioms, breaking changes and deprecations for this repo's actual dependencies."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
+effort: medium
 omitClaudeMd: true
 ---
 

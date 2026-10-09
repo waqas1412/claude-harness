@@ -205,11 +205,13 @@ commit per PR) and, only when asked, open the PR with `/pr` as a draft.
   every subagent spawn back then, which made dispatch far more expensive than it is now. Treat any
   repeat of those mistakes as fresh evidence, not as settled history.
 - No agent file carries a `model:` line, so EVERY dispatched lens runs on the exact suffixed id in
-  `env.CLAUDE_CODE_SUBAGENT_MODEL`, verified on 2026-09-22 to be `eu.anthropic.claude-sonnet-5[1m]`.
+  `env.CLAUDE_CODE_SUBAGENT_MODEL`, set on 2026-10-09 to `eu.anthropic.claude-haiku-5-5[1m]` with
+  `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`, so a `model` argument on a dispatch is ignored. Every agent file pins
+  `effort: medium`, so a mid-session `/effort` change does not reach a lens.
   This file used to claim the verdict-bearing lenses carried `model: inherit` and ran on Opus; they
-  never did. Set that id, never a bare `sonnet` alias, which can step down to Opus 4.8. The statusline
-  reads `.model.display_name` for the SESSION, so it shows Opus while a Sonnet lens is running: it is
-  not evidence of the lens model.
+  never did. Set that id exactly as it appears in `availableModels`, suffix included, or it is
+  silently swapped. The statusline reads `.model.display_name` for the SESSION, so it shows Sonnet
+  while a Haiku lens is running: it is not evidence of the lens model.
 - A lens with nothing to say is a skip you declare, not a section you pad.
 - Reading the lens file is cheap and reading the wrong lens is waste: pick from the change, not from
   the list length.

@@ -2,6 +2,7 @@
 name: design-principles-advisor
 description: "Structural design principles: SOLID, GRASP, CUPID, coupling and cohesion, SoC, LoD, CQS, POLA."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
+effort: medium
 omitClaudeMd: true
 ---
 

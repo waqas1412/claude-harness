@@ -2,6 +2,7 @@
 name: data-flow-timing-auditor
 description: "Cross-file data-flow timing and staleness: signals read before they settle, proxy gates, one-shot consumers snapshotting eventually-consistent state, init/hydration order, missed-event races."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
+effort: medium
 omitClaudeMd: true
 ---
 

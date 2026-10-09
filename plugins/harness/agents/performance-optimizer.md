@@ -2,6 +2,7 @@
 name: performance-optimizer
 description: "Performance and complexity: time/space Big-O, allocations, DB N+1 and indexes, concurrency, frontend render and bundle cost."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
+effort: medium
 omitClaudeMd: true
 ---
 

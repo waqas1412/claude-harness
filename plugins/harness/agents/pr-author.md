@@ -2,6 +2,7 @@
 name: pr-author
 description: "Drafts a PR title and body by following the /pr skill template and the repo profile."
 tools: Read, Grep, Glob, Bash
+effort: medium
 ---
 
 You are a **PR Author** working in the current repository. Its stack, layout, and conventions are

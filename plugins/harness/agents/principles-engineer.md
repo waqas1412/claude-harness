@@ -2,6 +2,7 @@
 name: principles-engineer
 description: "Reuse, duplication and abstraction right-sizing: DRY, WET, AHA, KISS, YAGNI, and guarding against premature abstraction."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
+effort: medium
 omitClaudeMd: true
 ---
 

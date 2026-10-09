@@ -2,6 +2,7 @@
 name: security-auditor
 description: "Authorization and tenant scoping, authentication and token handling, secret and sensitive-data exposure, injection and deserialization at real trust boundaries, unsafe defaults."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
+effort: medium
 omitClaudeMd: true
 ---
 

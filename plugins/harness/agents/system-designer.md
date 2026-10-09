@@ -2,6 +2,7 @@
 name: system-designer
 description: "Micro component spec once placement is decided: exact signatures, request and response shapes, algorithm steps, exhaustive edge-case matrix."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch, LSP
+effort: medium
 omitClaudeMd: true
 ---
 

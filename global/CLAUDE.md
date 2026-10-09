@@ -6,7 +6,7 @@ stack) live in `.claude/harness/profile.md`, which `/pr` and `/ticket` read. Do 
 
 ## Delegation, and what never leaves this loop
 
-- Opus plans, Sonnet writes: this loop owns planning, decisions, verification, and every claim made to
+- Sonnet plans, Haiku writes: this loop owns planning, decisions, verification, and every claim made to
   the user. Hand code-writing to `implementer` and read-heavy investigation to a read-only agent, so its
   output never enters this context. Nothing a subagent reports is true until you have read the diff and
   run lint, build and tests yourself. (`feedback_opus_brain_sonnet_hands`)

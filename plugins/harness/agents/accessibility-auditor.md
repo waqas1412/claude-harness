@@ -2,6 +2,7 @@
 name: accessibility-auditor
 description: "Accessibility of a BUILT UI: keyboard-only path, focus management and visibility, accessible names, semantics and roles, dialog/overlay behaviour, live-region announcement, reflow and target size."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
+effort: medium
 omitClaudeMd: true
 ---
 
