@@ -222,6 +222,8 @@ install_capabilities() {
     done
     copy_file "$SRC/global/statusline.sh" "$CLAUDE_HOME/statusline.sh"
     chmod +x "$CLAUDE_HOME/statusline.sh"
+    copy_file "$SRC/global/subagent-statusline.sh" "$CLAUDE_HOME/subagent-statusline.sh"
+    chmod +x "$CLAUDE_HOME/subagent-statusline.sh"
     copy_file "$SRC/global/cost-baseline.py" "$CLAUDE_HOME/scripts/cost-baseline.py"
     note "8 hooks: 7 PreToolUse guards (coauthor, pr-reviewer, force-push, md-emdash, workflow-rules, local-only-refs, external-query-leaks) + 1 PostToolUse output filter"
   fi
