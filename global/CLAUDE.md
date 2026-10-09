@@ -59,7 +59,9 @@ stack) live in `.claude/harness/profile.md`, which `/pr` and `/ticket` read. Do 
 - No em dash in prose: commas, periods, parentheses, colons, or restructure. En dash in numeric ranges is
   fine. Hook-enforced.
 - Code comments: avoid them. Write one only for a non-obvious why or a real gotcha, as a one-liner, for
-  the next reader and never as a note to yourself. Open a function comment with the identifier and say
+  the next reader and never as a note to yourself. The one exception is the public surface: JSDoc on public
+  component props, hooks and context members (a docstring on a Python public function or schema), stating
+  behaviour, defaults and constraints, never restating the name. Open a function comment with the identifier and say
   what the thing does; measurements and reasoning belong in the commit and PR body. Let naming and
   structure carry intent, match the file's density. Every file type counts (TypeSpec, YAML, SQL, config,
   tests), applied inside each Edit or Write, never as a later sweep. (`feedback_code_comments`)
@@ -147,6 +149,11 @@ any setting for cost, along with `/usage` ("Prompt cache (main)") for the live h
 
 - Just-in-time context: grep or glob to the slice, read only that slice. Never bulk-read whole files,
   directories or knowledge bases. Filter or summarize big tool output at the source.
+- Keep the main loop's cache warm: the TTL is 5m, so no wait inside a turn may pass 4 minutes. Bash is
+  capped at 4 minutes (`BASH_MAX_TIMEOUT_MS`) and a longer command moves to the background. While a
+  background command, subagent or workflow is still running, do not end the turn: check in every 3 to 4
+  minutes with one short call (`sleep 210`, then tail its output) until it reports. A check-in re-reads the
+  context at 0.05x, a cold rebuild rewrites all of it at 1.25x. (`reference_token_cost_levers`)
 - Hold model AND effort fixed for a whole task: changing either recomputes the whole cached prefix at
   full price (a fallbackModel swap on overload is the deliberate exception).
 - Compact only at a task boundary, saying what to keep (`/compact focus on X`). Abandon a bad path with

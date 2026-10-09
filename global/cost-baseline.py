@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Price the real token usage in local Claude Code transcripts.
 
-Reads ~/.claude/projects/*/*.jsonl, which carry the full usage record per API call:
-per-type token counts, the 5m/1h cache-write split, the model, and whether the call
-came from a subagent. Nothing here touches AWS, so it works without billing access.
+Reads ~/.claude/projects/*/*.jsonl and the subagent transcripts under
+~/.claude/projects/*/*/subagents/, which carry the full usage record per API call:
+per-type token counts, the 5m/1h cache-write split and the model. One API response is
+written as several lines (thinking, text, tool call) with the same usage, so each
+response is counted once by message id. Nothing here touches AWS.
 
 Dollars are Anthropic list price. Bedrock rates may differ; if they do, every figure
 scales by the same factor and the ranking is unchanged. The token counts are exact.
@@ -15,8 +17,9 @@ scales by the same factor and the ranking is unchanged. The token counts are exa
 import argparse, glob, json, os, time
 from collections import defaultdict
 
-# Per-MTok input price. Output is 5x input; cache read 0.1x; 5m write 1.25x; 1h write 2.0x.
-RATE = {"opus": 5.0, "sonnet": 2.0, "haiku": 1.0}
+# Per-MTok input price and cache-read multiplier. Output is 5x input; 5m write 1.25x; 1h write 2.0x.
+# Most specific key first: Opus 5.5 reads at $0.20, which is 0.05x its $4 input.
+RATE = {"opus-5-5": (4.0, 0.05), "opus": (5.0, 0.1), "sonnet": (2.0, 0.1), "haiku": (1.0, 0.1)}
 
 
 def family(model):
@@ -27,9 +30,16 @@ def family(model):
     return None
 
 
+def transcripts():
+    base = os.path.expanduser("~/.claude/projects")
+    yield from ((p, "main") for p in glob.glob(f"{base}/*/*.jsonl"))
+    yield from ((p, "subagent") for p in glob.glob(f"{base}/*/*/subagents/*.jsonl"))
+
+
 def records(days):
     cutoff = time.time() - days * 86400
-    for path in glob.glob(os.path.expanduser("~/.claude/projects/*/*.jsonl")):
+    seen = set()
+    for path, where in transcripts():
         try:
             if os.path.getmtime(path) < cutoff:
                 continue
@@ -50,11 +60,20 @@ def records(days):
                 fam = family(msg.get("model") or entry.get("model"))
                 if not fam:
                     continue
+                rid = msg.get("id") or entry.get("requestId") or entry.get("uuid")
+                if rid in seen:
+                    continue
+                seen.add(rid)
+                stamp = entry.get("timestamp") or ""
+                if stamp[:19] < time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(cutoff)):
+                    continue
                 writes = usage.get("cache_creation") or {}
                 yield {
                     "fam": fam,
-                    "where": "subagent" if entry.get("isSidechain") else "main",
-                    "day": (entry.get("timestamp") or "")[:10],
+                    "where": where,
+                    "path": path,
+                    "ts": stamp,
+                    "day": stamp[:10],
                     "uncached": usage.get("input_tokens") or 0,
                     "read": usage.get("cache_read_input_tokens") or 0,
                     "w5": writes.get("ephemeral_5m_input_tokens") or 0,
@@ -65,14 +84,44 @@ def records(days):
 
 
 def price(r):
-    rate = RATE[r["fam"]]
-    return (
-        r["uncached"] * rate
-        + r["w5"] * rate * 1.25
-        + r["w1"] * rate * 2.0
-        + r["read"] * rate * 0.1
-        + r["out"] * rate * 5
-    ) / 1e6
+    return sum(parts(r).values())
+
+
+def parts(r):
+    rate, read = RATE[r["fam"]]
+    return {
+        "cache reads": r["read"] * rate * read / 1e6,
+        "5m cache writes": r["w5"] * rate * 1.25 / 1e6,
+        "1h cache writes": r["w1"] * rate * 2.0 / 1e6,
+        "output": r["out"] * rate * 5 / 1e6,
+        "uncached input": r["uncached"] * rate / 1e6,
+    }
+
+
+def ttl_replay(rows):
+    """Re-price main-loop input under each TTL from the real start-to-start gaps.
+
+    A response after a gap longer than the TTL rewrites its whole prefix; otherwise it
+    reads the prefix and writes only the new tail. Observed rebuilds after a >5m gap get
+    the median small write as their tail, since the real tail is hidden inside the rebuild.
+    """
+    main = sorted((r for r in rows if r["where"] == "main"), key=lambda r: (r["path"], r["ts"]))
+    small = sorted(r["w5"] + r["w1"] for r in main if r["w5"] + r["w1"] < 20_000) or [0]
+    tail = small[len(small) // 2]
+    out = {}
+    for ttl, mult in ((300, 1.25), (3600, 2.0)):
+        cost, prev = 0.0, {}
+        for r in main:
+            rate, read = RATE[r["fam"]]
+            w = r["w5"] + r["w1"]
+            prefix = r["read"] + w
+            t = time.mktime(time.strptime(r["ts"][:19], "%Y-%m-%dT%H:%M:%S"))
+            gap = t - prev.get(r["path"], t)
+            prev[r["path"]] = t
+            new = w if gap <= 300 or w < 20_000 else tail
+            cost += prefix * rate * mult if gap > ttl else (prefix - new) * rate * read + new * rate * mult
+        out[ttl] = cost / 1e6
+    return out
 
 
 def main():
@@ -99,7 +148,7 @@ def main():
             b["cost"] += cost
             for f in ("uncached", "read", "w5", "w1", "out", "think"):
                 b[f] += r[f]
-        if r["fam"] == "opus" and r["where"] == "main":
+        if r["fam"].startswith("opus") and r["where"] == "main":
             sizes.append(r["uncached"] + r["read"] + r["w5"] + r["w1"])
 
     print(f"last {args.days} days: {len(rows)} API calls, ${total:,.0f} at list price\n")
@@ -118,18 +167,13 @@ def main():
     for b in by_model.values():
         for f in ("uncached", "read", "w5", "w1", "out", "think"):
             agg[f] += b[f]
-    # Composition, priced with the opus rate since it dominates.
-    r = RATE["opus"]
-    parts = {
-        "cache reads": agg["read"] * r * 0.1,
-        "5m cache writes": agg["w5"] * r * 1.25,
-        "1h cache writes": agg["w1"] * r * 2.0,
-        "output": agg["out"] * r * 5,
-        "uncached input": agg["uncached"] * r,
-    }
-    print("\nwhere the money goes (opus rate):")
-    for name, v in sorted(parts.items(), key=lambda kv: -kv[1]):
-        print(f"  {name:18s} ${v / 1e6:>8,.0f}  {100 * v / max(sum(parts.values()), 1):>4.0f}%")
+    comp = defaultdict(float)
+    for r in rows:
+        for name, v in parts(r).items():
+            comp[name] += v
+    print("\nwhere the money goes:")
+    for name, v in sorted(comp.items(), key=lambda kv: -kv[1]):
+        print(f"  {name:18s} ${v:>8,.0f}  {100 * v / max(total, 1e-9):>4.0f}%")
 
     denom = agg["read"] + agg["w5"] + agg["w1"] + agg["uncached"]
     print(f"\ncache read share of all input: {100 * agg['read'] / max(denom, 1):.1f}%")
@@ -150,9 +194,12 @@ def main():
             over = sum(1 for s in sizes if s > cap)
             print(
                 f"  {cap // 1000:>4}k  {excess / 1e9:>5.2f}B  {100 * excess / max(grand, 1):>3.0f}% of input"
-                f"  {100 * over / n:>4.0f}% of calls affected  ~${excess * 0.97 * 0.5 / 1e6:>6,.0f}/period"
+                f"  {100 * over / n:>4.0f}% of calls affected  ~${excess * RATE['opus-5-5'][0] * RATE['opus-5-5'][1] / 1e6:>6,.0f}/period"
             )
         print("  floor only: it counts tokens above the line, not the lower restart after each compaction.")
+
+    replay = ttl_replay(rows)
+    print(f"\nmain-loop TTL replay on real gaps (input + writes): 5m ${replay[300]:,.0f}   1h ${replay[3600]:,.0f}")
 
     print(f"\n{'day':12s}{'calls':>7s}{'cache read':>13s}{'5m write':>11s}{'1h write':>11s}{'$ list':>9s}")
     for day in sorted(by_day)[-args.days:]:

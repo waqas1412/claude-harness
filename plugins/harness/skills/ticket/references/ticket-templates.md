@@ -149,8 +149,8 @@ Publish through the tracker's rich-text format (ADF for Jira), not escaped markd
 
 GOTCHA: the Atlassian MCP tools downconvert the description to markdown on read, even when the read is
 asked for in ADF, and markdown has no panel. So a read-back showing plain bold lead-ins neither proves
-nor disproves that panels landed. Confirm in the browser, or fetch the raw field through the REST API,
-before claiming either way.
+nor disproves that panels landed. The MCP is the only route to Jira, so there is no raw-field fallback:
+ask him to look at the ticket in the browser before claiming either way.
 
 ## Definition of Ready
 Two lines of core issue. A numbered middle someone else could follow, named for the type. Both halves

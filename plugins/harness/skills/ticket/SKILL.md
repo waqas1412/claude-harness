@@ -62,7 +62,7 @@ just not spelled out in the ticket); verify-before-git-ops.
 ## Gotchas
 - No `.claude/harness/profile.md`: drafting against an assumed tracker prefix instead of falling back to a backlog markdown file plus a linked GitHub issue when no tracker is configured.
 - Publishing escaped markdown into a rich-text field, so the reader sees literal asterisks and numbers instead of formatting.
-- Believing a read-back about panels: the Atlassian MCP tools downconvert the description to markdown on read even when ADF is requested, and markdown has no panel, so the read-back can neither prove nor disprove that panels landed. Confirm in the browser or fetch the raw field.
+- Believing a read-back about panels: the Atlassian MCP tools downconvert the description to markdown on read even when ADF is requested, and markdown has no panel, so the read-back can neither prove nor disprove that panels landed, and the MCP is the only route, so there is no raw-field fallback. Ask him to confirm in the browser.
 - Using heading nodes for the three sections. Bold lead-ins carry them; a ticket this short does not need headings.
 - Giving a version bump the skeleton, panels or numbered steps: it reads as a bug report or a to-do list. Say what to update to, then what to expect. Never "now uses": a ticket asks for the work, it does not report it.
 - Padding the steps to exactly five when the work needs four, or stretching one repro to ten steps when it is really two bugs.
