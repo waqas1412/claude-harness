@@ -34,11 +34,13 @@ it.
 2. Inspect the change: `git diff`, `git diff --stat`, `git log --oneline <base>..HEAD`, and read
    touched files as needed to describe intent (not a file-by-file restatement).
 3. Draft the title (`<type>: <TICKET-KEY> <summary>`, per the profile's ticket prefix and commit
-   types) and the body to the template: the tracker close line plus a compact what-changed-and-why
-   summary, and nothing else. No headings, no Testing block, no screenshots table.
+   types) and the body to the template: the tracker close line, `## What changed` (1 to 3 bullets, one per effect a user or reviewer will notice, never the mechanism)
+   and `## How to test` only when the reviewer has something to run (1 to 3 bullets), in plain words, and nothing else.
+   Size both to this PR; never pad to a count. No other
+   headings, no screenshots table, no self notes.
 4. Self-check against the skill's pre-submit checklist, especially: NO em dashes anywhere, the
    tracker-close line present (or `Fixes #<n>` when there is no tracker), body carries nothing beyond
-   the close line and the summary, no `Co-Authored-By`, no `--reviewer`.
+   the close line and the two lists, every bullet passes the subject test, no `Co-Authored-By`, no `--reviewer`.
 
 ## Output
 Return two clearly labeled blocks: TITLE (one line) and BODY (markdown). Note any field the main loop
